@@ -82099,7 +82099,7 @@ n=A.c([n,B.i4,A.i4(A.bn(b,s,s,s,A.h5(s,s,d?B.j4:B.k,s,s,s,s,s,s,s,s,13,s,s,m,s,s
 return new A.bM(B.EF,A.xF(!1,r,!0,A.dD(s,A.dd(n,B.N,B.q,B.u,s),B.v,s,s,new A.cy(p,s,s,o,s,s,B.a8),s,s,B.nm,s),s,!0,s,s,s,s,s,s,s,s,q,s,s,s,s,s),s)},
 NL(a,b,c){return this.NM(a,b,!1,c,null)},
 a9u(a,b,c,d){return this.NM(a,b,c,!1,d)},
-ad2(){var s,r,q=this,p=null,o=A.c([B.LW,B.LV,new A.bM(B.no,A.bn("Existing".toUpperCase(),p,p,p,B.zE,p,p),p),q.NL(B.FG,"Dashboard",!0),q.NL(B.FE,"Assigned credentials",!0),new A.bM(B.no,A.bn("Rosendin Analytics".toUpperCase(),p,p,p,B.zE,p,p),p)],t.p)
+ad2(){var s,r,q=this,p=null,o=A.c([B.LW,B.LV,new A.bM(B.no,A.bn("Existing - not in this prototype".toUpperCase(),p,p,p,B.zE,p,p),p),q.NL(B.FG,"Dashboard",!0),q.NL(B.FE,"Assigned credentials",!0),new A.bM(B.no,A.bn("Rosendin Analytics".toUpperCase(),p,p,p,B.zE,p,p),p)],t.p)
 for(s=0;s<5;++s){r=B.oc[s]
 o.push(q.a9u(r.a,r.b,q.d===s,new A.alA(q,s)))}o.push(B.PC)
 o.push(B.LX)
@@ -82188,8 +82188,8 @@ h=A.W(new A.V(r,new A.a6H(),h),h.h("aa.E"))
 g=A.N(q).h("V<1,k>")
 g=A.W(new A.V(q,new A.a6I(),g),g.h("aa.E"))
 a4=A.bK(A.c([l,new A.Iw(i,A.c([a4,h,g],t.Zb),B.IH,B.Hz,f)],j),B.F,B.q,B.u)
-l=A.bK(A.c([A.hf("Profile freshness","When workers last updated anything"),new A.wQ(A.c([new A.de("Last 30 days",p,B.iV),new A.de("31-90 days",o,B.cG),new A.de("90+ days",n,B.dg)],t.Av),"workers",f)],j),B.F,B.q,B.u)
-i=A.hf("What stands out","Computed from the current filter")
+l=A.bK(A.c([A.hf("Profile freshness","When workers last updated anything. 30/90-day windows are proposed"),new A.wQ(A.c([new A.de("Last 30 days",p,B.iV),new A.de("31-90 days",o,B.cG),new A.de("90+ days",n,B.dg)],t.Av),"workers",f)],j),B.F,B.q,B.u)
+i=A.hf("What stands out","Computed from the current filter. Windows and buckets are proposed defaults, not confirmed policy")
 d=A.aoi(d).length
 h=m===1
 g=h?"":"s"
@@ -82264,7 +82264,7 @@ o=p?B.dg:B.b1
 p=p?"needs attention":"nothing urgent"
 n=t.p
 o=A.aoI(A.c([new A.dH("Personal credentials",""+a2,"self-added by workers",B.ha,c,c),new A.dH(b,""+a5,"received from NCCER",B.FI,c,c),new A.dH(a,""+a6,"OSHA, state cards, more",B.FD,c,c),new A.dH("Expiring in 30 days",s,p,B.nQ,o,c)],n))
-p=A.FQ(a1,new A.dR(A.bK(A.c([A.hf("Badges vs other issuers","NCCER badges vs credentials from anywhere else"),new A.wQ(A.c([new A.de(b,a5,B.b1),new A.de(a,a6,B.df)],t.Av),"credentials",c)],n),B.F,B.q,B.u),c,c),new A.dR(A.bK(A.c([A.hf("Top personal credential types","What workers hold beyond the assigned set"),new A.lH(b0,B.b1,c)],n),B.F,B.q,B.u),c,c))
+p=A.FQ(a1,new A.dR(A.bK(A.c([A.hf("Badges vs other issuers","Proposed split: NCCER-sourced vs any other issuer"),new A.wQ(A.c([new A.de(b,a5,B.b1),new A.de(a,a6,B.df)],t.Av),"credentials",c)],n),B.F,B.q,B.u),c,c),new A.dR(A.bK(A.c([A.hf("Top personal credential types","Illustrative sample names only - not real requirement data"),new A.lH(b0,B.b1,c)],n),B.F,B.q,B.u),c,c))
 a2=A.bK(A.c([A.hf("Credentials added by month","Fresh additions show active workers"),A.apq(B.b1,a9)],n),B.F,B.q,B.u)
 a8=A.c([A.hf("Expiring soon",s+" in 30 days \xb7 "+(a8-a7)+" more in 31-90 days")],n)
 if(a4.length===0)a8.push(B.V2)
@@ -82326,7 +82326,7 @@ d=A.bK(A.c([A.hf("Experience depth","Workers by years in the trade"),new A.lH(p,
 m=A.hf("Avg years by trade","Helps match workers to the right jobs")
 l=A.N(q).h("V<1,av<o,k>>")
 l=A.W(new A.V(q,new A.a0l(),l),l.h("aa.E"))
-return A.bK(A.c([h,B.c4,A.FQ(i,new A.dR(d,j,j),new A.dR(A.bK(A.c([m,new A.lH(l,B.b1,j)],f),B.F,B.q,B.u),j,j)),B.c4,A.FQ(i,new A.dR(A.bK(A.c([A.hf("Experience added by month","Workers keep adding history on their own"),A.apq(B.df,o)],f),B.F,B.q,B.u),j,j),new A.dR(A.bK(A.c([A.hf("Where workers come from","Most common past employers they list"),new A.lH(n,B.ea,j)],f),B.F,B.q,B.u),j,j))],f),B.F,B.q,B.u)}}
+return A.bK(A.c([h,B.c4,A.FQ(i,new A.dR(d,j,j),new A.dR(A.bK(A.c([m,new A.lH(l,B.b1,j)],f),B.F,B.q,B.u),j,j)),B.c4,A.FQ(i,new A.dR(A.bK(A.c([A.hf("Experience added by month","Updates to the existing profile section over time"),A.apq(B.df,o)],f),B.F,B.q,B.u),j,j),new A.dR(A.bK(A.c([A.hf("Where workers come from","Most common past employers they list"),new A.lH(n,B.ea,j)],f),B.F,B.q,B.u),j,j))],f),B.F,B.q,B.u)}}
 A.a0b.prototype={
 $1(a){return a.e.length!==0},
 $S:25}
