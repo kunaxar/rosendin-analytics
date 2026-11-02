@@ -88,15 +88,25 @@ List<Worker> buildWorkers() {
         creds.add(Cred(otherCredNames[r.nextInt(otherCredNames.length)], false, added, expiry));
       }
     }
-    // experience records: sequential roles that exactly split total years (non-overlapping career)
+    // experience records: sequential roles that split the displayed total years exactly -
+    // every record is kept at 1 decimal and the last record is the exact remainder,
+    // so the displayed records always add up to the displayed total.
+    final totalYears = double.parse(baseYears.toStringAsFixed(1));
     final exp = <ExpRecord>[];
     if (r.nextDouble() < 0.85) {
       final n = 1 + r.nextInt(3);
-      var remaining = baseYears;
+      var remaining = totalYears;
       for (var e = 0; e < n; e++) {
-        final yrs = e == n - 1 ? remaining : (remaining / (n - e)) * (0.5 + r.nextDouble());
-        remaining -= yrs;
-        exp.add(ExpRecord(employers[r.nextInt(employers.length)], trade, double.parse(yrs.toStringAsFixed(1)), daysAgo(30 + r.nextInt(370))));
+        var yrs = remaining;
+        if (e < n - 1) {
+          yrs = double.parse(((remaining / (n - e)) * (0.5 + r.nextDouble())).toStringAsFixed(1));
+          if (yrs < 0.5) yrs = 0.5;
+          final minRest = 0.5 * (n - 1 - e);
+          if (remaining - yrs < minRest) yrs = double.parse((remaining - minRest).toStringAsFixed(1));
+        }
+        yrs = double.parse(yrs.toStringAsFixed(1));
+        remaining = double.parse((remaining - yrs).toStringAsFixed(1));
+        exp.add(ExpRecord(employers[r.nextInt(employers.length)], trade, yrs, daysAgo(30 + r.nextInt(370))));
       }
     }
     // work samples
@@ -115,7 +125,7 @@ List<Worker> buildWorkers() {
     for (final d in [...creds.map((c) => c.added), ...exp.map((e) => e.added), ...samples.map((s2) => s2.uploaded)]) {
       if (d.isAfter(lastUpd)) lastUpd = d;
     }
-    out.add(Worker(name, trade, double.parse(baseYears.toStringAsFixed(1)), creds, exp, samples, complete, lastUpd));
+    out.add(Worker(name, trade, totalYears, creds, exp, samples, complete, lastUpd));
   }
   return out;
 }
