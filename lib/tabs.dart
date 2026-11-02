@@ -380,12 +380,14 @@ class WorkerPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(backgroundColor: slateDark, foregroundColor: Colors.white, title: const Text('Worker profile', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: wide ? 28 : 14, vertical: 20),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1120),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(children: [
+          demoBanner(),
+          Expanded(child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: wide ? 28 : 14, vertical: 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 CardBox(child: Row(children: [
                   CircleAvatar(radius: 26, backgroundColor: blueBg, child: Text(w.name.split(' ').map((p) => p[0]).take(2).join(), style: const TextStyle(color: slate, fontWeight: FontWeight.w800, fontSize: 18))),
                   const SizedBox(width: 14),
@@ -399,6 +401,8 @@ class WorkerPage extends StatelessWidget {
                       Text('${w.profileComplete}% complete · updated ${fmtDate(w.lastUpdate)}', style: const TextStyle(fontSize: 12, color: g500)),
                     ]),
                   ])),
+                  const SizedBox(width: 10),
+                  const Tag('Fictional worker', amber, amberBg),
                 ])),
                 const SizedBox(height: 14),
                 twoCol(wide,
@@ -443,7 +447,10 @@ class WorkerPage extends StatelessWidget {
                   if (samples.isEmpty) const Text('No samples yet.', style: TextStyle(color: g500, fontSize: 13)),
                   Wrap(spacing: 10, runSpacing: 10, children: [
                     for (final sm in samples)
-                      Container(
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SampleDetailPage(worker: w, sample: sm))),
+                        child: Container(
                         width: 168,
                         decoration: BoxDecoration(border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -457,17 +464,82 @@ class WorkerPage extends StatelessWidget {
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Text(sm.taskTag, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 3),
-                              Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
+                              Row(children: [
+                                if (sm.confirmedBy != null) ...[const Icon(Icons.check_circle, size: 12, color: green), const SizedBox(width: 3)],
+                                Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
+                              ]),
                             ]),
                           ),
                         ]),
+                        ),
                       ),
                   ]),
                 ])),
               ]),
             ),
-          ),
-        ),
+          ))),
+        ]),
+      ),
+    );
+  }
+}
+
+// ---------- sample detail (same evidence object the worker-side work samples flow produces) ----------
+class SampleDetailPage extends StatelessWidget {
+  final Worker worker;
+  final Sample sample;
+  const SampleDetailPage({super.key, required this.worker, required this.sample});
+
+  @override
+  Widget build(BuildContext context) {
+    final confirmed = sample.confirmedBy != null;
+    return Scaffold(
+      appBar: AppBar(backgroundColor: slateDark, foregroundColor: Colors.white, title: const Text('Work sample', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+      body: SafeArea(
+        child: Column(children: [
+          demoBanner(),
+          Expanded(child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    height: 300,
+                    decoration: BoxDecoration(color: blueBg, borderRadius: BorderRadius.circular(16)),
+                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(sample.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 56, color: slate),
+                      const SizedBox(height: 8),
+                      Text(sample.isVideo ? 'Video evidence' : 'Photo evidence', style: const TextStyle(fontSize: 13, color: g600, fontWeight: FontWeight.w600)),
+                      const Text('Media placeholder in this prototype', style: TextStyle(fontSize: 11.5, color: g500)),
+                    ])),
+                  ),
+                  const SizedBox(height: 14),
+                  CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(sample.taskTag, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+                      confirmed
+                          ? Tag('Confirmed', green, greenBg, icon: Icons.check_circle)
+                          : Tag('Self-reported', g600, g100, icon: Icons.person_outline),
+                    ]),
+                    const SizedBox(height: 8),
+                    Text('${worker.name} · ${worker.trade}', style: const TextStyle(fontSize: 13.5, color: g600, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text('Uploaded ${fmtDate(sample.uploaded)}', style: const TextStyle(fontSize: 12.5, color: g500)),
+                    if (confirmed) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Confirmed by ${sample.confirmedBy}', style: const TextStyle(fontSize: 12.5, color: green))),
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text('How this gets captured', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    const Text('Same evidence object as the worker-side work samples flow: the worker adds a photo or video first, task tags are suggested and confirmed, and a foreman, supervisor, coworker or instructor can confirm the sample. Confirmed means a named person said yes; self-reported is the worker\'s own entry.',
+                        style: TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
+                  ])),
+                ]),
+              ),
+            ),
+          )),
+        ]),
       ),
     );
   }
