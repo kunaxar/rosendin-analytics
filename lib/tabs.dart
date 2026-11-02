@@ -228,9 +228,9 @@ class SamplesTab extends StatelessWidget {
     final avg = withSamples == 0 ? 0.0 : samples.length / withSamples;
     final adds = perMonth(samples.map((s) => s.uploaded).where((d) => d.isAfter(rangeStart(range))), rangeMonths(range));
     final topTags = topEntries(countBy(samples.map((s) => s.taskTag)));
-    final recent = <(String, Sample)>[
+    final recent = <(Worker, Sample)>[
       for (final w in workers)
-        for (final s in w.samples) (w.name, s),
+        for (final s in w.samples) (w, s),
     ]..sort((a, b) => b.$2.uploaded.compareTo(a.$2.uploaded));
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -255,16 +255,19 @@ class SamplesTab extends StatelessWidget {
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         chartTitle('Latest samples', sub: 'Most recent uploads across workers'),
         for (final r in recent.take(8))
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(children: [
-              Icon(r.$2.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 18, color: slate),
-              const SizedBox(width: 10),
-              Expanded(child: Text(r.$2.taskTag, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-              Text(r.$1, style: const TextStyle(fontSize: 12.5, color: g500)),
-              const SizedBox(width: 14),
-              SizedBox(width: 96, child: Text(fmtDate(r.$2.uploaded), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5, color: g500))),
-            ]),
+          InkWell(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerPage(worker: r.$1))),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(children: [
+                Icon(r.$2.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 18, color: slate),
+                const SizedBox(width: 10),
+                Expanded(child: Text(r.$2.taskTag, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                Text(r.$1.name, style: const TextStyle(fontSize: 12.5, color: g500)),
+                const SizedBox(width: 14),
+                SizedBox(width: 96, child: Text(fmtDate(r.$2.uploaded), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5, color: g500))),
+              ]),
+            ),
           ),
       ])),
     ]);
@@ -324,6 +327,7 @@ class _WorkersTabState extends State<WorkersTab> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
+            showCheckboxColumn: false,
             headingRowHeight: 44,
             dataRowMinHeight: 44,
             dataRowMaxHeight: 44,
@@ -339,7 +343,7 @@ class _WorkersTabState extends State<WorkersTab> {
             ],
             rows: [
               for (final w in rows)
-                DataRow(cells: [
+                DataRow(onSelectChanged: (_) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerPage(worker: w))), cells: [
                   DataCell(Text(w.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
                   DataCell(Text(w.trade, style: const TextStyle(fontSize: 12.5))),
                   DataCell(Text('${w.creds.length}', style: const TextStyle(fontSize: 13))),
@@ -358,5 +362,113 @@ class _WorkersTabState extends State<WorkersTab> {
         ),
       ),
     ]);
+  }
+}
+
+
+// ---------- worker detail (connected journey: analytics -> worker -> their own profile data) ----------
+class WorkerPage extends StatelessWidget {
+  final Worker worker;
+  const WorkerPage({super.key, required this.worker});
+
+  @override
+  Widget build(BuildContext context) {
+    final w = worker;
+    final wide = MediaQuery.of(context).size.width >= 760;
+    final samples = [...w.samples]..sort((a, b) => b.uploaded.compareTo(a.uploaded));
+    final exp = [...w.experience]..sort((a, b) => b.added.compareTo(a.added));
+    return Scaffold(
+      appBar: AppBar(backgroundColor: slateDark, foregroundColor: Colors.white, title: const Text('Worker profile', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: wide ? 28 : 14, vertical: 20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CardBox(child: Row(children: [
+                  CircleAvatar(radius: 26, backgroundColor: blueBg, child: Text(w.name.split(' ').map((p) => p[0]).take(2).join(), style: const TextStyle(color: slate, fontWeight: FontWeight.w800, fontSize: 18))),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(w.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                    Text('${w.trade} · ${w.yearsExperience.toStringAsFixed(1)} yrs experience', style: const TextStyle(fontSize: 13, color: g500)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Container(width: 120, height: 6, decoration: BoxDecoration(color: g200, borderRadius: BorderRadius.circular(3)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: w.profileComplete / 100, child: Container(decoration: BoxDecoration(color: w.profileComplete >= 80 ? green : w.profileComplete >= 55 ? amber : red, borderRadius: BorderRadius.circular(3))))),
+                      const SizedBox(width: 8),
+                      Text('${w.profileComplete}% complete · updated ${fmtDate(w.lastUpdate)}', style: const TextStyle(fontSize: 12, color: g500)),
+                    ]),
+                  ])),
+                ])),
+                const SizedBox(height: 14),
+                twoCol(wide,
+                  CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    chartTitle('Personal credentials', sub: '${w.creds.length} self-added · badge = NCCER-sourced (proposed split)'),
+                    if (w.creds.isEmpty) const Text('None added yet.', style: TextStyle(color: g500, fontSize: 13)),
+                    for (final c in w.creds)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: Row(children: [
+                          Icon(c.isBadge ? Icons.military_tech_outlined : Icons.badge_outlined, size: 17, color: c.isBadge ? slate : orange),
+                          const SizedBox(width: 8),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('Added ${fmtDate(c.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
+                          ])),
+                          if (c.expiry != null)
+                            Tag(c.expiry!.isBefore(demoNow) ? 'Expired' : 'Exp ${fmtDate(c.expiry!)}', c.expiry!.isBefore(demoNow) ? red : c.expiry!.isBefore(demoNow.add(const Duration(days: 90))) ? amber : g600, c.expiry!.isBefore(demoNow) ? redBg : c.expiry!.isBefore(demoNow.add(const Duration(days: 90))) ? amberBg : g100),
+                        ]),
+                      ),
+                  ])),
+                  CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    chartTitle('Work experience', sub: 'From the existing profile section'),
+                    if (exp.isEmpty) const Text('Not filled yet.', style: TextStyle(color: g500, fontSize: 13)),
+                    for (final e in exp)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: Row(children: [
+                          const Icon(Icons.work_history_outlined, size: 17, color: slate),
+                          const SizedBox(width: 8),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('${e.role} · ${e.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text('${e.years.toStringAsFixed(1)} yrs · added ${fmtDate(e.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
+                          ])),
+                        ]),
+                      ),
+                  ])),
+                ),
+                const SizedBox(height: 14),
+                CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  chartTitle('Work samples', sub: '${w.samples.length} samples - same task tags the worker-side add flow uses'),
+                  if (samples.isEmpty) const Text('No samples yet.', style: TextStyle(color: g500, fontSize: 13)),
+                  Wrap(spacing: 10, runSpacing: 10, children: [
+                    for (final sm in samples)
+                      Container(
+                        width: 168,
+                        decoration: BoxDecoration(border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Container(
+                            height: 88,
+                            decoration: const BoxDecoration(color: blueBg, borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                            child: Center(child: Icon(sm.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 30, color: slate)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(sm.taskTag, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 3),
+                              Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
+                            ]),
+                          ),
+                        ]),
+                      ),
+                  ]),
+                ])),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
