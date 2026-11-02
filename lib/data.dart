@@ -148,7 +148,10 @@ List<Worker> buildWorkers() {
         yrs = double.parse(yrs.toStringAsFixed(1));
         remaining = double.parse((remaining - yrs).toStringAsFixed(1));
         final employer = employers[r.nextInt(employers.length)];
-        exp.add(ExpRecord(employer, trade, yrs, daysAgo(30 + r.nextInt(370))));
+        final verified = r.nextDouble() < 0.45; // draw kept so the dataset matches the original sequence
+        final expAdded = daysAgo(30 + r.nextInt(370));
+        if (verified) r.nextInt(6); // discarded: no verified records exist in the current product
+        exp.add(ExpRecord(employer, trade, yrs, expAdded));
       }
     }
     // work samples
@@ -156,7 +159,12 @@ List<Worker> buildWorkers() {
     if (r.nextDouble() < 0.44) {
       final n = 1 + r.nextInt(6);
       for (var s = 0; s < n; s++) {
-        samples.add(Sample(taskTags[r.nextInt(taskTags.length)], r.nextDouble() < 0.22, daysAgo(r.nextInt(240))));
+        final confirmed = r.nextDouble() < 0.45; // draw kept so the dataset matches the original sequence
+        final sTag = taskTags[r.nextInt(taskTags.length)];
+        final sVideo = r.nextDouble() < 0.22;
+        final sUploaded = daysAgo(r.nextInt(240));
+        if (confirmed) { r.nextInt(4); r.nextInt(6); } // discarded: no confirmed samples exist in the current product
+        samples.add(Sample(sTag, sVideo, sUploaded));
       }
     }
     // completeness computed from filled sections: base info 40, credentials 20, experience 20, samples 15, deep credentials 5
