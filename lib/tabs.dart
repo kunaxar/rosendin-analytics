@@ -76,11 +76,11 @@ class OverviewTab extends StatelessWidget {
       const SizedBox(height: 14),
       twoCol(wide,
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Profile freshness', sub: 'When workers last updated anything'),
+          chartTitle('Profile freshness', sub: 'When workers last updated anything. 30/90-day windows are proposed'),
           Donut(slices: [('Last 30 days', fresh30, green), ('31-90 days', fresh90, amber), ('90+ days', stale, red)], centerLabel: 'workers'),
         ])),
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('What stands out', sub: 'Computed from the current filter'),
+          chartTitle('What stands out', sub: 'Computed from the current filter. Windows and buckets are proposed defaults, not confirmed policy'),
           Insight(Icons.badge_outlined, slate, '${credsOf(workers).length} personal credentials sit on worker profiles, added by workers themselves - separate from what Rosendin assigns.'),
           Insight(Icons.schedule, amber, '$expiring personal credential${expiring == 1 ? '' : 's'} expire${expiring == 1 ? 's' : ''} in the next 30 days. Renewal reminders go to the worker; Rosendin sees the count.'),
           Insight(Icons.photo_library_outlined, const Color(0xFF7A9BC0), 'Only ${n == 0 ? 0 : (100 * withSamples / n).round()}% of workers show actual work samples. Samples are the strongest signal of real skills and are still rare.'),
@@ -122,11 +122,11 @@ class CredentialsTab extends StatelessWidget {
       const SizedBox(height: 14),
       twoCol(wide,
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Badges vs other issuers', sub: 'NCCER badges vs credentials from anywhere else'),
+          chartTitle('Badges vs other issuers', sub: 'Proposed split: NCCER-sourced vs any other issuer'),
           Donut(slices: [('NCCER badges', badges, slate), ('Other issuers', other, orange)], centerLabel: 'credentials'),
         ])),
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Top personal credential types', sub: 'What workers hold beyond the assigned set'),
+          chartTitle('Top personal credential types', sub: 'Illustrative sample names only - not real requirement data'),
           HBars(entries: topTypes),
         ])),
       ),
@@ -201,7 +201,7 @@ class ExperienceTab extends StatelessWidget {
       const SizedBox(height: 14),
       twoCol(wide,
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Experience added by month', sub: 'Workers keep adding history on their own'),
+          chartTitle('Experience added by month', sub: 'Updates to the existing profile section over time'),
           Bars(data: adds, color: orange),
         ])),
         CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
