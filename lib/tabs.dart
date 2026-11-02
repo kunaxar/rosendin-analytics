@@ -3,6 +3,7 @@ import 'ui.dart';
 import 'data.dart';
 import 'charts.dart';
 import 'xlsx.dart';
+import 'report_page.dart';
 
 // ---------- shared ----------
 List<Cred> credsOf(List<Worker> ws) => ws.expand((w) => w.creds).toList();
@@ -259,19 +260,9 @@ class OverviewTab extends StatefulWidget {
   State<OverviewTab> createState() => _OverviewTabState();
 }
 
-class _Report {
-  final String title;
-  final List<(String, String)> rows;
-  final String summary;
-  const _Report(this.title, this.rows, this.summary);
-}
-
-String _fmtEntries(List<MapEntry<String, int>> es) => es.isEmpty ? '-' : es.map((e) => '${e.key} (${e.value})').join(', ');
-
 class _OverviewTabState extends State<OverviewTab> {
   String credQuery = '';
   final _reportCtrl = TextEditingController();
-  _Report? _report;
   bool _reportUnsupported = false;
 
   @override
@@ -283,60 +274,11 @@ class _OverviewTabState extends State<OverviewTab> {
   void _generateReport() {
     final q = _reportCtrl.text.trim();
     if (q.isEmpty) return;
-    final t = q.toLowerCase();
-    final ws = workers;
-    final creds = credsOf(ws);
-    final recs = expOf(ws);
-    final samples = samplesOf(ws);
-    final n = ws.length;
-    _Report? rep;
-    if (t.contains('expir') || t.contains('renewal')) {
-      final exp = <(Worker, Cred)>[
-        for (final w in ws)
-          for (final c in w.creds)
-            if (credStatus(c) == CredStatus.expiring || credStatus(c) == CredStatus.expired) (w, c),
-      ];
-      final expd = exp.where((u) => credStatus(u.$2) == CredStatus.expired).length;
-      final topTrade = topEntries(countBy(exp.map((u) => u.$1.trade)), 1);
-      rep = _Report('Expiring credential risk', [
-        ('Credentials expiring within 90 days', '${exp.length - expd}'),
-        ('Already expired', '$expd'),
-        ('Most affected trades', _fmtEntries(topEntries(countBy(exp.map((u) => u.$1.trade)), 3))),
-        ('Most common expiring credentials', _fmtEntries(topEntries(countBy(exp.map((u) => u.$2.name)), 3))),
-      ], exp.isEmpty
-          ? 'AI summary (illustrative): no worker-added credentials expire within the next 90 days, so renewal risk is currently low.'
-          : 'AI summary (illustrative): ${exp.length} worker-added credential${exp.length == 1 ? '' : 's'} need${exp.length == 1 ? 's' : ''} renewal attention. The risk concentrates in ${topTrade.first.key} - nudging those workers first covers the largest share of upcoming expiries.');
-    } else if (t.contains('sample') || t.contains('photo') || t.contains('video') || t.contains('adoption')) {
-      final withS = ws.where((w) => w.samples.isNotEmpty).length;
-      final videos = samples.where((sm) => sm.isVideo).length;
-      rep = _Report('Work sample adoption', [
-        ('Workers with samples', '$withS of $n (${n == 0 ? 0 : (100 * withS / n).round()}%)'),
-        ('Total samples', '${samples.length}'),
-        ('Videos', '${samples.isEmpty ? 0 : (100 * videos / samples.length).round()}%'),
-        ('Top task tags', _fmtEntries(topEntries(countBy(samples.map((sm) => sm.taskTag)), 3))),
-      ], 'AI summary (illustrative): only ${n == 0 ? 0 : (100 * withS / n).round()}% of workers show real work. Samples are the strongest skill signal, so the biggest lever is nudging the ${n - withS} workers without any.');
-    } else if (t.contains('experience') || t.contains('employer') || t.contains('years')) {
-      final withE = ws.where((w) => w.experience.isNotEmpty).length;
-      rep = _Report('Work experience depth', [
-        ('Workers with experience', '$withE of $n (${n == 0 ? 0 : (100 * withE / n).round()}%)'),
-        ('Experience records', '${recs.length}'),
-        ('Avg years per worker', n == 0 ? '0' : (ws.fold<double>(0, (a, w) => a + w.yearsExperience) / n).toStringAsFixed(1)),
-        ('Top past employers', _fmtEntries(topEntries(countBy(recs.map((e) => e.employer)), 3))),
-      ], 'AI summary (illustrative): depth looks solid on paper, but every record is self-reported - the per-record request verification flow is how Rosendin would confirm the ones that matter for a role.');
-    } else if (t.contains('credential') || t.contains('badge') || t.contains('nccer') || t.contains('coverage') || t.contains('issuer')) {
-      final withC = ws.where((w) => w.creds.isNotEmpty).length;
-      final badges = creds.where((c) => c.isBadge).length;
-      rep = _Report('Credential coverage', [
-        ('Workers with credentials', '$withC of $n (${n == 0 ? 0 : (100 * withC / n).round()}%)'),
-        ('Total worker-added credentials', '${creds.length}'),
-        ('NCCER badges vs other issuers', '$badges / ${creds.length - badges}'),
-        ('Top credential types', _fmtEntries(topEntries(countBy(creds.map((c) => c.name)), 3))),
-      ], 'AI summary (illustrative): ${n - withC} workers share no credential at all - closing that gap matters more than adding credentials for workers who already share.');
+    final rep = buildDemoReport(q, widget.workers);
+    setState(() => _reportUnsupported = rep == null);
+    if (rep != null) {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => ReportPage(report: rep)));
     }
-    setState(() {
-      _report = rep;
-      _reportUnsupported = rep == null;
-    });
   }
 
   List<Worker> get workers => widget.workers;
@@ -432,7 +374,7 @@ class _OverviewTabState extends State<OverviewTab> {
 
       // ---- ask for a report (AI analysis concept) ----
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        sectionHeader('Ask for a report', 'Ask for any cut of this worker-added data in plain language. Full concept: AI curates the analysis on live data (proposed, not built). This demo simulates a few example reports from fictional data.'),
+        sectionHeader('Ask for a report', 'Ask for any cut of this worker-added data in plain language. Full concept: AI curates the analysis on live data (proposed, not built). This demo simulates a few example reports from fictional data. Each opens as its own report page.'),
         Row(children: [
           Expanded(
             child: TextField(
@@ -463,41 +405,6 @@ class _OverviewTabState extends State<OverviewTab> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: g100, borderRadius: BorderRadius.circular(10)),
             child: const Text('This demo can simulate only the example reports above. The full concept lets an admin ask for any cut of the data and uses AI to curate it - that integration is proposed and not built yet.', style: TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
-          ),
-        ],
-        if (_report != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: blueBg, borderRadius: BorderRadius.circular(10)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text(_report!.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
-                const Tag('Simulated demo output - not a live AI response', g600, g100, icon: Icons.science_outlined),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () => setState(() {
-                    _report = null;
-                    _reportUnsupported = false;
-                  }),
-                  child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.close, size: 15, color: g500)),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              for (final r in _report!.rows)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(children: [
-                    Expanded(child: Text(r.$1, style: const TextStyle(fontSize: 12.5, color: g600))),
-                    Text(r.$2, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-                  ]),
-                ),
-              const SizedBox(height: 10),
-              Text(_report!.summary, style: const TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
-              const SizedBox(height: 6),
-              const Text('Demo: this report is generated locally in the browser from the fictional dataset; no demo report data is sent to any AI service.', style: TextStyle(fontSize: 11.5, color: g500)),
-            ]),
           ),
         ],
       ])),
