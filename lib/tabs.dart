@@ -283,18 +283,6 @@ class _OverviewTabState extends State<OverviewTab> {
           if (credStatus(c) == CredStatus.expiring || credStatus(c) == CredStatus.expired) (w, c),
     ]..sort((a, b) => a.$2.expiry!.compareTo(b.$2.expiry!));
     final exp30 = expiring.where((e) => credStatus(e.$2) == CredStatus.expiring && e.$2.expiry!.isBefore(demoNow.add(const Duration(days: 30)))).length;
-    final unverExp = <(Worker, ExpRecord)>[
-      for (final w in workers)
-        for (final e in w.experience)
-          if (e.verifiedBy == null) (w, e),
-    ];
-    final unverSamples = <(Worker, Sample)>[
-      for (final w in workers)
-        for (final s in w.samples)
-          if (s.confirmedBy == null) (w, s),
-    ];
-    final openExp = unverExp.where((u) => !DemoActions.verificationRequests.contains(expKey(u.$1, u.$2))).length;
-    final openSamples = unverSamples.where((u) => !DemoActions.verificationRequests.contains(sampleKey(u.$1, u.$2))).length;
 
     // latest worker-added items feed
     final feed = <(IconData, String, Worker, DateTime)>[
@@ -330,14 +318,12 @@ class _OverviewTabState extends State<OverviewTab> {
       });
 
     // experience section
-    final verifiedRecs = recs.where((e) => e.verifiedBy != null).length;
     final buckets = [('0-2 yrs', 0.0, 2.0), ('3-5 yrs', 3.0, 5.0), ('6-10 yrs', 6.0, 10.0), ('10+ yrs', 10.01, 100.0)];
     final bucketCounts = buckets.map((b) => MapEntry(b.$1, workers.where((w) => w.yearsExperience >= b.$2 && w.yearsExperience <= b.$3).length)).toList();
     final topEmployers = topEntries(countBy(recs.map((e) => e.employer)), 6);
 
     // samples section
     final videos = samples.where((s) => s.isVideo).length;
-    final confirmedSamples = samples.where((s) => s.confirmedBy != null).length;
     final topTags = topEntries(countBy(samples.map((s) => s.taskTag)));
     final uploads = perMonth(samples.map((s) => s.uploaded).where((d) => d.isAfter(daysAgo(183))), 6);
 
@@ -353,42 +339,19 @@ class _OverviewTabState extends State<OverviewTab> {
 
       // ---- needs attention ----
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        sectionHeader('Needs attention', '$exp30 credential${exp30 == 1 ? '' : 's'} expiring in 30 days · $exp90 in 90 days · $openExp experience record${openExp == 1 ? '' : 's'} and $openSamples work sample${openSamples == 1 ? '' : 's'} awaiting verification'),
-        twoCol(wide,
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Expiring in 90 days', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
-            const SizedBox(height: 4),
-            if (expiring.isEmpty)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Nothing expiring in the next 90 days.', style: TextStyle(color: g500, fontSize: 13))),
-            for (final u in expiring.take(6)) _expiringRow(u.$1, u.$2),
-            if (expiring.length > 6)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('+ ${expiring.length - 6} more in the credentials table below', style: const TextStyle(fontSize: 12, color: g500)),
-              ),
-          ]),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Unverified records', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
-            const SizedBox(height: 4),
-            const Text('Self-reported by workers, not yet confirmed by a reference or proof document.',
-                style: TextStyle(fontSize: 12.5, color: g500, height: 1.4)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              OutlinedButton.icon(
-                style: smallBtn,
-                icon: const Icon(Icons.work_history_outlined, size: 15),
-                label: Text('Experience ($openExp open)'),
-                onPressed: unverExp.isEmpty ? null : () => _reviewUnverifiedExperience(unverExp),
-              ),
-              OutlinedButton.icon(
-                style: smallBtn,
-                icon: const Icon(Icons.photo_library_outlined, size: 15),
-                label: Text('Work samples ($openSamples open)'),
-                onPressed: unverSamples.isEmpty ? null : () => _reviewUnverifiedSamples(unverSamples),
-              ),
-            ]),
-          ]),
-        ),
+        sectionHeader('Needs attention', '$exp30 credential${exp30 == 1 ? '' : 's'} expiring in 30 days · $exp90 in 90 days'),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Expiring in 90 days', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
+          const SizedBox(height: 4),
+          if (expiring.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Nothing expiring in the next 90 days.', style: TextStyle(color: g500, fontSize: 13))),
+          for (final u in expiring.take(6)) _expiringRow(u.$1, u.$2),
+          if (expiring.length > 6)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text('+ ${expiring.length - 6} more in the credentials table below', style: const TextStyle(fontSize: 12, color: g500)),
+            ),
+        ]),
       ])),
       const SizedBox(height: 14),
 
@@ -487,7 +450,6 @@ class _OverviewTabState extends State<OverviewTab> {
           ('workers with experience', '${n == 0 ? 0 : (100 * withExp / n).round()}%'),
           ('experience records', '${recs.length}'),
           ('avg years per worker', n == 0 ? '0' : (workers.fold<double>(0, (a, w) => a + w.yearsExperience) / n).toStringAsFixed(1)),
-          ('verified by a reference', '${recs.isEmpty ? 0 : (100 * verifiedRecs / recs.length).round()}%'),
         ]),
         const SizedBox(height: 14),
         twoCol(wide,
@@ -500,16 +462,6 @@ class _OverviewTabState extends State<OverviewTab> {
             HBars(entries: topEmployers, color: const Color(0xFF7A9BC0)),
           ]),
         ),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: Text('$openExp of ${unverExp.length} self-reported records still open for verification.', style: const TextStyle(fontSize: 12.5, color: g500))),
-          OutlinedButton.icon(
-            style: smallBtn,
-            icon: const Icon(Icons.verified_outlined, size: 15),
-            label: const Text('Review unverified'),
-            onPressed: unverExp.isEmpty ? null : () => _reviewUnverifiedExperience(unverExp),
-          ),
-        ]),
       ])),
       const SizedBox(height: 14),
 
@@ -520,7 +472,6 @@ class _OverviewTabState extends State<OverviewTab> {
           ('workers with samples', '${n == 0 ? 0 : (100 * withSamples / n).round()}%'),
           ('total samples', '${samples.length}'),
           ('videos', '${samples.isEmpty ? 0 : (100 * videos / samples.length).round()}%'),
-          ('confirmed by someone', '${samples.isEmpty ? 0 : (100 * confirmedSamples / samples.length).round()}%'),
         ]),
         const SizedBox(height: 14),
         twoCol(wide,
@@ -533,16 +484,6 @@ class _OverviewTabState extends State<OverviewTab> {
             Bars(data: uploads, color: const Color(0xFF7A9BC0)),
           ]),
         ),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: Text('$openSamples of ${unverSamples.length} self-reported samples still open for verification.', style: const TextStyle(fontSize: 12.5, color: g500))),
-          OutlinedButton.icon(
-            style: smallBtn,
-            icon: const Icon(Icons.verified_outlined, size: 15),
-            label: const Text('Review unverified'),
-            onPressed: unverSamples.isEmpty ? null : () => _reviewUnverifiedSamples(unverSamples),
-          ),
-        ]),
       ])),
       const SizedBox(height: 14),
 
@@ -622,112 +563,6 @@ class _OverviewTabState extends State<OverviewTab> {
           ]),
         ),
         actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
-      ),
-    );
-  }
-
-  void _reviewUnverifiedExperience(List<(Worker, ExpRecord)> items) {
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Unverified experience records', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-          content: SizedBox(
-            width: 520,
-            height: 420,
-            child: items.isEmpty
-                ? const Text('Every experience record is verified.', style: TextStyle(fontSize: 13, color: g500))
-                : ListView(children: [
-                    for (final u in items)
-                      Builder(builder: (_) {
-                        final key = expKey(u.$1, u.$2);
-                        final requested = DemoActions.verificationRequests.contains(key);
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(children: [
-                            Expanded(
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('${u.$2.role} · ${u.$2.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('${u.$1.name} · ${u.$2.years.toStringAsFixed(1)} yrs · added ${fmtDate(u.$2.added)}', style: const TextStyle(fontSize: 12, color: g500)),
-                              ]),
-                            ),
-                            if (requested)
-                              const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
-                            else
-                              TextButton(
-                                style: smallLink,
-                                onPressed: () => requestVerificationDialog(
-                                  context,
-                                  itemLabel: '${u.$2.role} · ${u.$2.employer} (${u.$1.name})',
-                                  onRequested: () {
-                                    DemoActions.verificationRequests.add(key);
-                                    setLocal(() {});
-                                    setState(() {});
-                                  },
-                                ),
-                                child: const Text('Request verification'),
-                              ),
-                          ]),
-                        );
-                      }),
-                  ]),
-          ),
-          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
-        ),
-      ),
-    );
-  }
-
-  void _reviewUnverifiedSamples(List<(Worker, Sample)> items) {
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Unverified work samples', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-          content: SizedBox(
-            width: 520,
-            height: 420,
-            child: items.isEmpty
-                ? const Text('Every sample has a confirmation.', style: TextStyle(fontSize: 13, color: g500))
-                : ListView(children: [
-                    for (final u in items)
-                      Builder(builder: (_) {
-                        final key = sampleKey(u.$1, u.$2);
-                        final requested = DemoActions.verificationRequests.contains(key);
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(children: [
-                            Icon(u.$2.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 16, color: slate),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(u.$2.taskTag, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('${u.$1.name} · uploaded ${fmtDate(u.$2.uploaded)}', style: const TextStyle(fontSize: 12, color: g500)),
-                              ]),
-                            ),
-                            if (requested)
-                              const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
-                            else
-                              TextButton(
-                                style: smallLink,
-                                onPressed: () => requestVerificationDialog(
-                                  context,
-                                  itemLabel: '${u.$2.taskTag} sample (${u.$1.name})',
-                                  onRequested: () {
-                                    DemoActions.verificationRequests.add(key);
-                                    setLocal(() {});
-                                    setState(() {});
-                                  },
-                                ),
-                                child: const Text('Request verification'),
-                              ),
-                          ]),
-                        );
-                      }),
-                  ]),
-          ),
-          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
-        ),
       ),
     );
   }
@@ -920,9 +755,7 @@ class _WorkerPageState extends State<WorkerPage> {
                               Text('${e.role} · ${e.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                               Text('${e.years.toStringAsFixed(1)} yrs · added ${fmtDate(e.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
                             ])),
-                            if (e.verifiedBy != null)
-                              Tooltip(message: 'Verified by ${e.verifiedBy}', child: const Tag('Verified', green, greenBg, icon: Icons.check_circle_outline))
-                            else if (requested)
+                            if (requested)
                               const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
                             else
                               TextButton(
@@ -965,7 +798,6 @@ class _WorkerPageState extends State<WorkerPage> {
                                   Text(sm.taskTag, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
                                   const SizedBox(height: 3),
                                   Row(children: [
-                                    if (sm.confirmedBy != null) ...[const Icon(Icons.check_circle, size: 12, color: green), const SizedBox(width: 3)],
                                     if (requested) ...[const Icon(Icons.hourglass_top, size: 12, color: slate), const SizedBox(width: 3)],
                                     Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
                                   ]),
@@ -998,7 +830,6 @@ class SampleDetailPage extends StatefulWidget {
 class _SampleDetailPageState extends State<SampleDetailPage> {
   @override
   Widget build(BuildContext context) {
-    final confirmed = widget.sample.confirmedBy != null;
     final key = sampleKey(widget.worker, widget.sample);
     final requested = DemoActions.verificationRequests.contains(key);
     return Scaffold(
@@ -1026,25 +857,20 @@ class _SampleDetailPageState extends State<SampleDetailPage> {
                   CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text(widget.sample.taskTag, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
-                      confirmed
-                          ? Tag('Confirmed', green, greenBg, icon: Icons.check_circle)
-                          : requested
-                              ? const Tag('Verification requested', slate, blueBg, icon: Icons.hourglass_top)
-                              : const Tag('Self-reported', g600, g100, icon: Icons.person_outline),
+                      if (requested) const Tag('Verification requested', slate, blueBg, icon: Icons.hourglass_top),
                     ]),
                     const SizedBox(height: 8),
                     Text('${widget.worker.name} · ${widget.worker.trade}', style: const TextStyle(fontSize: 13.5, color: g600, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text('Uploaded ${fmtDate(widget.sample.uploaded)}', style: const TextStyle(fontSize: 12.5, color: g500)),
-                    if (confirmed) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Confirmed by ${widget.sample.confirmedBy}', style: const TextStyle(fontSize: 12.5, color: green))),
                     const SizedBox(height: 12),
                     const Divider(),
                     const SizedBox(height: 8),
                     const Text('How this gets captured', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    const Text('Same evidence object as the worker-side work samples flow: the worker adds a photo or video first, task tags are suggested and confirmed, and a foreman, supervisor, coworker or instructor can confirm the sample. Confirmed means a named person said yes; self-reported is the worker\'s own entry.',
+                    const Text('Same evidence object as the worker-side work samples flow: the worker adds a photo or video first, task tags are suggested, and verification can be requested on this specific sample when needed.',
                         style: TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
-                    if (!confirmed && !requested) ...[
+                    if (!requested) ...[
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         style: smallBtn,
