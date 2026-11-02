@@ -21,7 +21,8 @@ class Sample {
   final String taskTag;
   final bool isVideo;
   final DateTime uploaded;
-  const Sample(this.taskTag, this.isVideo, this.uploaded);
+  final String? confirmedBy; // e.g. 'Foreman D. Hayes' - null means self-reported
+  const Sample(this.taskTag, this.isVideo, this.uploaded, this.confirmedBy);
 }
 
 class Worker {
@@ -44,6 +45,8 @@ const tradeWeights = [0.34, 0.26, 0.10, 0.12, 0.10, 0.08];
 const badgeNames = ['NCCER Core','NCCER Electrical Level 1','NCCER Electrical Level 2','NCCER Electrical Level 3','NCCER Power Line Worker'];
 const otherCredNames = ['OSHA 10','OSHA 30','NFPA 70E','First Aid / CPR','Forklift (sit-down)','MEWP / scissor lift','State journeyman card','CDL Class B','Confined space','Fall protection'];
 const employers = ['Helix Electric','Redwood Electric Co.','Bayline Electric','Summit Power Systems','Pacific Grid Contractors','Copperline Services','Atlas Power Group','Beacon Electrical','Truevolt Inc.','Northgate Electric'];
+const vouchRoles = ['Foreman','Supervisor','Coworker','Instructor'];
+const confirmerNames = ['D. Hayes','M. Torres','J. Whitfield','R. Sandoval','K. Brennan','T. Alvarez'];
 const taskTags = ['Conduit bending','Panel wiring','Cable pulling','Terminations','Switchgear install','Blueprint layout','Solar array mount','Underground rough-in'];
 
 // ---------- dataset (deterministic, fictional) ----------
@@ -85,12 +88,15 @@ List<Worker> buildWorkers() {
         creds.add(Cred(otherCredNames[r.nextInt(otherCredNames.length)], false, added, expiry));
       }
     }
-    // experience records
+    // experience records: sequential roles that exactly split total years (non-overlapping career)
     final exp = <ExpRecord>[];
     if (r.nextDouble() < 0.85) {
       final n = 1 + r.nextInt(3);
+      var remaining = baseYears;
       for (var e = 0; e < n; e++) {
-        exp.add(ExpRecord(employers[r.nextInt(employers.length)], trade, 0.5 + r.nextDouble() * 6, daysAgo(r.nextInt(400))));
+        final yrs = e == n - 1 ? remaining : (remaining / (n - e)) * (0.5 + r.nextDouble());
+        remaining -= yrs;
+        exp.add(ExpRecord(employers[r.nextInt(employers.length)], trade, double.parse(yrs.toStringAsFixed(1)), daysAgo(30 + r.nextInt(370))));
       }
     }
     // work samples
@@ -98,11 +104,18 @@ List<Worker> buildWorkers() {
     if (r.nextDouble() < 0.44) {
       final n = 1 + r.nextInt(6);
       for (var s = 0; s < n; s++) {
-        samples.add(Sample(taskTags[r.nextInt(taskTags.length)], r.nextDouble() < 0.22, daysAgo(r.nextInt(240))));
+        final confirmed = r.nextDouble() < 0.45;
+        samples.add(Sample(taskTags[r.nextInt(taskTags.length)], r.nextDouble() < 0.22, daysAgo(r.nextInt(240)), confirmed ? '${vouchRoles[r.nextInt(vouchRoles.length)]} ${confirmerNames[r.nextInt(confirmerNames.length)]}' : null));
       }
     }
-    final complete = (35 + r.nextInt(65)).clamp(0, 100);
-    out.add(Worker(name, trade, double.parse(baseYears.toStringAsFixed(1)), creds, exp, samples, complete, daysAgo(r.nextInt(160))));
+    // completeness computed from filled sections: base info 40, credentials 20, experience 20, samples 15, deep credentials 5
+    final complete = 40 + (creds.isNotEmpty ? 20 : 0) + (exp.isNotEmpty ? 20 : 0) + (samples.isNotEmpty ? 15 : 0) + (creds.length >= 3 ? 5 : 0);
+    // last update = most recent actual activity, else stale
+    var lastUpd = daysAgo(100 + r.nextInt(60));
+    for (final d in [...creds.map((c) => c.added), ...exp.map((e) => e.added), ...samples.map((s2) => s2.uploaded)]) {
+      if (d.isAfter(lastUpd)) lastUpd = d;
+    }
+    out.add(Worker(name, trade, double.parse(baseYears.toStringAsFixed(1)), creds, exp, samples, complete, lastUpd));
   }
   return out;
 }
