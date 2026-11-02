@@ -31,14 +31,15 @@ Widget statChips(List<(String, String)> stats) => Wrap(spacing: 10, runSpacing: 
 
 Widget sectionHeader(String title, String sub, {List<Widget> actions = const []}) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: LayoutBuilder(builder: (context, c) {
+      child: Builder(builder: (context) {
+        final narrow = MediaQuery.of(context).size.width < 760;
         final titleBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
           Padding(padding: const EdgeInsets.only(top: 2), child: Text(sub, style: const TextStyle(fontSize: 12.5, color: g500))),
         ]);
-        if (actions.isNotEmpty && c.maxWidth < 600) {
+        if (actions.isNotEmpty && narrow) {
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            titleBlock,
+            SizedBox(width: double.infinity, child: titleBlock),
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: actions),
           ]);
@@ -401,10 +402,18 @@ class _OverviewTabState extends State<OverviewTab> {
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final ex in const ['Which credentials are expiring, and for which trades?', 'How complete is credential coverage across workers?', 'Which workers have the most experience?', 'How is work sample adoption looking?'])
-            ActionChip(label: Text(ex, maxLines: 2, softWrap: true, style: const TextStyle(fontSize: 12)), onPressed: () {
-              _reportCtrl.text = ex;
-              _generateReport();
-            }),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () {
+                _reportCtrl.text = ex;
+                _generateReport();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(border: Border.all(color: g300), borderRadius: BorderRadius.circular(8)),
+                child: Text(ex, style: const TextStyle(fontSize: 12)),
+              ),
+            ),
         ]),
         if (_reportUnsupported) ...[
           const SizedBox(height: 12),
