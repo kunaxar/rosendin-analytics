@@ -475,6 +475,14 @@ class _OverviewTabState extends State<OverviewTab> {
               Row(children: [
                 Expanded(child: Text(_report!.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
                 const Tag('Simulated demo output - not a live AI response', g600, g100, icon: Icons.science_outlined),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => setState(() {
+                    _report = null;
+                    _reportUnsupported = false;
+                  }),
+                  child: const Padding(padding: EdgeInsets.all(2), child: Icon(Icons.close, size: 15, color: g500)),
+                ),
               ]),
               const SizedBox(height: 10),
               for (final r in _report!.rows)
