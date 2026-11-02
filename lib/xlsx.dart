@@ -88,3 +88,7 @@ void downloadPersonalCredentialsReport(List<Worker> workers) {
   ];
   _download(buildXlsx('Personal credentials', rows), 'personal-credentials-report.xlsx');
 }
+
+void downloadRowsXlsx(String sheetName, List<List<String>> rows, String filename) {
+  _download(buildXlsx(sheetName, rows), filename);
+}
