@@ -14,16 +14,14 @@ class ExpRecord {
   final String role;
   final double years;
   final DateTime added;
-  final String? verifiedBy; // e.g. 'D. Hayes (Helix Electric)' - null means self-reported
-  const ExpRecord(this.employer, this.role, this.years, this.added, this.verifiedBy);
+  const ExpRecord(this.employer, this.role, this.years, this.added);
 }
 
 class Sample {
   final String taskTag;
   final bool isVideo;
   final DateTime uploaded;
-  final String? confirmedBy; // e.g. 'Foreman D. Hayes' - null means self-reported
-  const Sample(this.taskTag, this.isVideo, this.uploaded, this.confirmedBy);
+  const Sample(this.taskTag, this.isVideo, this.uploaded);
 }
 
 class Worker {
@@ -46,8 +44,6 @@ const tradeWeights = [0.34, 0.26, 0.10, 0.12, 0.10, 0.08];
 const badgeNames = ['NCCER Core','NCCER Electrical Level 1','NCCER Electrical Level 2','NCCER Electrical Level 3','NCCER Power Line Worker'];
 const otherCredNames = ['OSHA 10','OSHA 30','NFPA 70E','First Aid / CPR','Forklift (sit-down)','MEWP / scissor lift','State journeyman card','CDL Class B','Confined space','Fall protection'];
 const employers = ['Helix Electric','Redwood Electric Co.','Bayline Electric','Summit Power Systems','Pacific Grid Contractors','Copperline Services','Atlas Power Group','Beacon Electrical','Truevolt Inc.','Northgate Electric'];
-const vouchRoles = ['Foreman','Supervisor','Coworker','Instructor'];
-const confirmerNames = ['D. Hayes','M. Torres','J. Whitfield','R. Sandoval','K. Brennan','T. Alvarez'];
 const taskTags = ['Conduit bending','Panel wiring','Cable pulling','Terminations','Switchgear install','Blueprint layout','Solar array mount','Underground rough-in'];
 
 // ---------- issuer + status helpers ----------
@@ -152,9 +148,7 @@ List<Worker> buildWorkers() {
         yrs = double.parse(yrs.toStringAsFixed(1));
         remaining = double.parse((remaining - yrs).toStringAsFixed(1));
         final employer = employers[r.nextInt(employers.length)];
-        final verified = r.nextDouble() < 0.45;
-        exp.add(ExpRecord(employer, trade, yrs, daysAgo(30 + r.nextInt(370)),
-            verified ? '${confirmerNames[r.nextInt(confirmerNames.length)]} ($employer)' : null));
+        exp.add(ExpRecord(employer, trade, yrs, daysAgo(30 + r.nextInt(370))));
       }
     }
     // work samples
@@ -162,8 +156,7 @@ List<Worker> buildWorkers() {
     if (r.nextDouble() < 0.44) {
       final n = 1 + r.nextInt(6);
       for (var s = 0; s < n; s++) {
-        final confirmed = r.nextDouble() < 0.45;
-        samples.add(Sample(taskTags[r.nextInt(taskTags.length)], r.nextDouble() < 0.22, daysAgo(r.nextInt(240)), confirmed ? '${vouchRoles[r.nextInt(vouchRoles.length)]} ${confirmerNames[r.nextInt(confirmerNames.length)]}' : null));
+        samples.add(Sample(taskTags[r.nextInt(taskTags.length)], r.nextDouble() < 0.22, daysAgo(r.nextInt(240))));
       }
     }
     // completeness computed from filled sections: base info 40, credentials 20, experience 20, samples 15, deep credentials 5
