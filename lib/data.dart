@@ -14,7 +14,8 @@ class ExpRecord {
   final String role;
   final double years;
   final DateTime added;
-  const ExpRecord(this.employer, this.role, this.years, this.added);
+  final String? verifiedBy; // e.g. 'D. Hayes (Helix Electric)' - null means self-reported
+  const ExpRecord(this.employer, this.role, this.years, this.added, this.verifiedBy);
 }
 
 class Sample {
@@ -48,6 +49,50 @@ const employers = ['Helix Electric','Redwood Electric Co.','Bayline Electric','S
 const vouchRoles = ['Foreman','Supervisor','Coworker','Instructor'];
 const confirmerNames = ['D. Hayes','M. Torres','J. Whitfield','R. Sandoval','K. Brennan','T. Alvarez'];
 const taskTags = ['Conduit bending','Panel wiring','Cable pulling','Terminations','Switchgear install','Blueprint layout','Solar array mount','Underground rough-in'];
+
+// ---------- issuer + status helpers ----------
+String issuerOf(String credName) {
+  if (badgeNames.contains(credName)) return 'NCCER';
+  if (credName.startsWith('OSHA')) return 'OSHA';
+  if (credName.startsWith('NFPA')) return 'NFPA';
+  if (credName.startsWith('First Aid')) return 'American Red Cross';
+  if (credName.startsWith('State journeyman')) return 'State licensing board';
+  if (credName.startsWith('CDL')) return 'State DMV';
+  return 'Training provider';
+}
+
+enum CredStatus { valid, expiring, expired, noExpiry }
+
+CredStatus credStatus(Cred c, {int windowDays = 90}) {
+  if (c.expiry == null) return CredStatus.noExpiry;
+  if (c.expiry!.isBefore(demoNow)) return CredStatus.expired;
+  if (c.expiry!.isBefore(demoNow.add(Duration(days: windowDays)))) return CredStatus.expiring;
+  return CredStatus.valid;
+}
+
+String credStatusLabel(Cred c) {
+  switch (credStatus(c)) {
+    case CredStatus.expired:
+      return 'Expired';
+    case CredStatus.expiring:
+      final d = c.expiry!.difference(demoNow).inDays;
+      return d <= 0 ? 'Expires today' : 'Expires in $d days';
+    case CredStatus.valid:
+      return 'Valid';
+    case CredStatus.noExpiry:
+      return 'No expiry';
+  }
+}
+
+// ---------- in-memory demo actions (prototype only: nothing is ever sent) ----------
+class DemoActions {
+  static final Set<String> nudgedCreds = <String>{};
+  static final Set<String> verificationRequests = <String>{};
+}
+
+String credKey(Worker w, Cred c) => '${w.name}|${c.name}|${c.added.microsecondsSinceEpoch}';
+String expKey(Worker w, ExpRecord e) => '${w.name}|${e.employer}|${e.role}|${e.added.microsecondsSinceEpoch}';
+String sampleKey(Worker w, Sample s) => '${w.name}|${s.taskTag}|${s.uploaded.microsecondsSinceEpoch}';
 
 // ---------- dataset (deterministic, fictional) ----------
 final DateTime demoNow = DateTime.now();
@@ -106,7 +151,10 @@ List<Worker> buildWorkers() {
         }
         yrs = double.parse(yrs.toStringAsFixed(1));
         remaining = double.parse((remaining - yrs).toStringAsFixed(1));
-        exp.add(ExpRecord(employers[r.nextInt(employers.length)], trade, yrs, daysAgo(30 + r.nextInt(370))));
+        final employer = employers[r.nextInt(employers.length)];
+        final verified = r.nextDouble() < 0.45;
+        exp.add(ExpRecord(employer, trade, yrs, daysAgo(30 + r.nextInt(370)),
+            verified ? '${confirmerNames[r.nextInt(confirmerNames.length)]} ($employer)' : null));
       }
     }
     // work samples
