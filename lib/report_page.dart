@@ -214,8 +214,8 @@ class _ReportPageState extends State<ReportPage> {
   static const _pageSize = 15;
   int _shown = _pageSize;
 
-  Widget _stat(String label, String value) => Container(
-        width: 190,
+  Widget _stat(String label, String value, bool wide) => Container(
+        width: wide ? 190 : (MediaQuery.of(context).size.width - 28 - 36 - 10) / 2,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: g50, border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -271,7 +271,7 @@ class _ReportPageState extends State<ReportPage> {
                     CardBox(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         chartTitle('Key findings', sub: 'Numbers are calculated from the fictional dataset. Wording is illustrative.'),
-                        Wrap(spacing: 10, runSpacing: 10, children: [for (final s in r.stats) _stat(s.$1, s.$2)]),
+                        Wrap(spacing: 10, runSpacing: 10, children: [for (final s in r.stats) _stat(s.$1, s.$2, wide)]),
                         const SizedBox(height: 14),
                         for (final f in r.findings)
                           Padding(
@@ -292,7 +292,7 @@ class _ReportPageState extends State<ReportPage> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(children: [
-                                SizedBox(width: wide ? 190 : 110, child: Text(b.$1, style: const TextStyle(fontSize: 12.5, color: g600), overflow: TextOverflow.ellipsis)),
+                                SizedBox(width: wide ? 190 : 128, child: Text(b.$1, style: const TextStyle(fontSize: 12.5, color: g600), overflow: TextOverflow.ellipsis)),
                                 Expanded(
                                   child: Stack(children: [
                                     Container(height: 12, decoration: BoxDecoration(color: g100, borderRadius: BorderRadius.circular(6))),
@@ -324,19 +324,36 @@ class _ReportPageState extends State<ReportPage> {
                         if (r.rows.isEmpty)
                           const Text('No matching records.', style: TextStyle(color: g500, fontSize: 13))
                         else
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              headingRowHeight: 38,
-                              dataRowMinHeight: 40,
-                              dataRowMaxHeight: 48,
-                              columns: [for (final c in r.columns) DataColumn(label: Text(c, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600)))],
-                              rows: [
-                                for (final row in r.rows.take(shown))
-                                  DataRow(cells: [for (final c in row) DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 280), child: Text(c, style: const TextStyle(fontSize: 12.5), overflow: TextOverflow.ellipsis)))]),
-                              ],
-                            ),
-                          ),
+                          wide
+                              ? SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    headingRowHeight: 38,
+                                    dataRowMinHeight: 40,
+                                    dataRowMaxHeight: 48,
+                                    columns: [for (final c in r.columns) DataColumn(label: Text(c, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600)))],
+                                    rows: [
+                                      for (final row in r.rows.take(shown))
+                                        DataRow(cells: [for (final c in row) DataCell(ConstrainedBox(constraints: const BoxConstraints(maxWidth: 280), child: Text(c, style: const TextStyle(fontSize: 12.5), overflow: TextOverflow.ellipsis)))]),
+                                    ],
+                                  ),
+                                )
+                              : Column(children: [
+                                  for (final row in r.rows.take(shown))
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: const BoxDecoration(border: Border(top: BorderSide(color: g200))),
+                                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text(row.first, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                                        for (var i = 1; i < row.length; i++)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 2),
+                                            child: Text('${r.columns[i]}: ${row[i]}', style: const TextStyle(fontSize: 12.5, color: g600)),
+                                          ),
+                                      ]),
+                                    ),
+                                ]),
                         if (shown < r.rows.length)
                           Padding(
                             padding: const EdgeInsets.only(top: 10),
