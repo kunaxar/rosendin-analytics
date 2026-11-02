@@ -31,15 +31,23 @@ Widget statChips(List<(String, String)> stats) => Wrap(spacing: 10, runSpacing: 
 
 Widget sectionHeader(String title, String sub, {List<Widget> actions = const []}) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            Padding(padding: const EdgeInsets.only(top: 2), child: Text(sub, style: const TextStyle(fontSize: 12.5, color: g500))),
-          ]),
-        ),
-        if (actions.isNotEmpty) ...[const SizedBox(width: 10), Wrap(spacing: 8, runSpacing: 8, children: actions)],
-      ]),
+      child: LayoutBuilder(builder: (context, c) {
+        final titleBlock = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+          Padding(padding: const EdgeInsets.only(top: 2), child: Text(sub, style: const TextStyle(fontSize: 12.5, color: g500))),
+        ]);
+        if (actions.isNotEmpty && c.maxWidth < 600) {
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            titleBlock,
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: actions),
+          ]);
+        }
+        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: titleBlock),
+          if (actions.isNotEmpty) ...[const SizedBox(width: 10), Wrap(spacing: 8, runSpacing: 8, children: actions)],
+        ]);
+      }),
     );
 
 final smallBtn = OutlinedButton.styleFrom(
@@ -393,7 +401,7 @@ class _OverviewTabState extends State<OverviewTab> {
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final ex in const ['Which credentials are expiring, and for which trades?', 'How complete is credential coverage across workers?', 'Which workers have the most experience?', 'How is work sample adoption looking?'])
-            ActionChip(label: Text(ex, style: const TextStyle(fontSize: 12)), onPressed: () {
+            ActionChip(label: Text(ex, maxLines: 2, softWrap: true, style: const TextStyle(fontSize: 12)), onPressed: () {
               _reportCtrl.text = ex;
               _generateReport();
             }),
