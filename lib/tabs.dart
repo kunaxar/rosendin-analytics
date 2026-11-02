@@ -305,7 +305,7 @@ class _OverviewTabState extends State<OverviewTab> {
         ('Most common expiring credentials', _fmtEntries(topEntries(countBy(exp.map((u) => u.$2.name)), 3))),
       ], exp.isEmpty
           ? 'AI summary (illustrative): no worker-added credentials expire within the next 90 days, so renewal risk is currently low.'
-          : 'AI summary (illustrative): ${exp.length} worker-added credentials need renewal attention. The risk concentrates in ${topTrade.first.key} - nudging those workers first covers the largest share of upcoming expiries.');
+          : 'AI summary (illustrative): ${exp.length} worker-added credential${exp.length == 1 ? '' : 's'} need${exp.length == 1 ? 's' : ''} renewal attention. The risk concentrates in ${topTrade.first.key} - nudging those workers first covers the largest share of upcoming expiries.');
     } else if (t.contains('sample') || t.contains('photo') || t.contains('video') || t.contains('adoption')) {
       final withS = ws.where((w) => w.samples.isNotEmpty).length;
       final videos = samples.where((sm) => sm.isVideo).length;
