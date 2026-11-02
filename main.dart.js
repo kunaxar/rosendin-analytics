@@ -91206,7 +91206,12 @@ l=t.DM
 d=A.mq(A.mo(new A.a1(m,new A.apf(),l)),1)
 l=A.b([new A.a0("Credentials expiring within 90 days",""+(m.length-e)),new A.a0("Already expired",""+e),new A.a0("Most affected trades",A.a_Y(A.mq(A.mo(new A.a1(m,new A.apg(),l)),3))),new A.a0("Most common expiring credentials",A.a_Y(A.mq(A.mo(new A.a1(m,new A.apk(),l)),3)))],t.Wy)
 m=m.length
-a5.a=new A.wY("Expiring credential risk",l,m===0?"AI summary (illustrative): no worker-added credentials expire within the next 90 days, so renewal risk is currently low.":a4+m+" worker-added credentials need renewal attention. The risk concentrates in "+B.b.gS(d).a+" - nudging those workers first covers the largest share of upcoming expiries.")}else if(B.c.p(s,"sample")||B.c.p(s,"photo")||B.c.p(s,"video")||B.c.p(s,"adoption")){c=new A.aj(r,new A.apl(),A.Q(r).h("aj<1>")).gA(0)
+if(m===0)m="AI summary (illustrative): no worker-added credentials expire within the next 90 days, so renewal risk is currently low."
+else{i=m===1
+h=i?"":"s"
+i=i?"s":""
+i=a4+m+" worker-added credential"+h+" need"+i+" renewal attention. The risk concentrates in "+B.b.gS(d).a+" - nudging those workers first covers the largest share of upcoming expiries."
+m=i}a5.a=new A.wY("Expiring credential risk",l,m)}else if(B.c.p(s,"sample")||B.c.p(s,"photo")||B.c.p(s,"video")||B.c.p(s,"adoption")){c=new A.aj(r,new A.apl(),A.Q(r).h("aj<1>")).gA(0)
 m=A.Q(o)
 b=new A.aj(o,new A.apm(),m.h("aj<1>")).gA(0)
 l=n===0
