@@ -9,7 +9,7 @@ class App extends StatelessWidget {
   const App({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Rosendin Analytics - BuilderFAX',
+        title: 'Rosendin Analytics - BuilderFax',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         home: const Shell(),
@@ -155,7 +155,7 @@ class _ShellState extends State<Shell> {
             child: Row(children: [
               Icon(Icons.verified_user_outlined, color: Colors.white, size: 22),
               SizedBox(width: 8),
-              Text('BuilderFAX', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+              Text('BuilderFax', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
             ]),
           ),
           const Padding(
@@ -182,7 +182,7 @@ class _ShellState extends State<Shell> {
         child: const Row(children: [
           Icon(Icons.verified_user_outlined, color: Colors.white, size: 20),
           SizedBox(width: 8),
-          Text('BuilderFAX', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          Text('BuilderFax', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
           SizedBox(width: 6),
           Text('· Rosendin back office', style: TextStyle(color: Colors.white54, fontSize: 12)),
         ]),
