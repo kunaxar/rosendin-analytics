@@ -353,10 +353,10 @@ class _OverviewTabState extends State<OverviewTab> {
 
       // ---- needs attention ----
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        sectionHeader('Needs attention', '$exp30 credential${exp30 == 1 ? '' : 's'} expiring in 30 days · $openExp experience record${openExp == 1 ? '' : 's'} and $openSamples work sample${openSamples == 1 ? '' : 's'} awaiting verification'),
+        sectionHeader('Needs attention', '$exp30 credential${exp30 == 1 ? '' : 's'} expiring in 30 days · $exp90 in 90 days · $openExp experience record${openExp == 1 ? '' : 's'} and $openSamples work sample${openSamples == 1 ? '' : 's'} awaiting verification'),
         twoCol(wide,
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Expiring credentials', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
+            const Text('Expiring in 90 days', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
             const SizedBox(height: 4),
             if (expiring.isEmpty)
               const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Nothing expiring in the next 90 days.', style: TextStyle(color: g500, fontSize: 13))),
