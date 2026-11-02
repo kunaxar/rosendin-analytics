@@ -90062,7 +90062,7 @@ s=t.fo
 o=A.a0(new A.a5(o,new A.asD(),s),s.h("av.E"))
 s=t.p
 r=A.rw(A.b([A.ds(A.aMW(B.I4,p,o,new A.asE(this),t.N),null,240)],s),10,10)
-q=A.bw(A.b([A.c_(A.b([B.Y7,B.em,B.Sy],s),B.x,B.l,B.m,0,null),B.fN,B.XO],s),B.y,B.l,B.m)
+q=A.bw(A.b([A.c_(A.b([B.Y7,B.em,B.Sy],s),B.x,B.l,B.m,0,null),B.fN,B.XN],s),B.y,B.l,B.m)
 return a?A.c_(A.b([A.d0(q,1),r],s),B.y,B.l,B.m,0,null):A.bw(A.b([q,B.dj,r],s),B.y,B.l,B.m)},
 ahx(){var s,r,q,p,o,n,m,l,k=null,j=t.p,i=A.b([],j)
 for(s=0;s<2;++s){r=new A.aB(40,40)
@@ -90196,7 +90196,7 @@ f=b.$2("Issuer",A.IE(f))
 e=b.$2("Added",A.oD(e))
 h=h.d
 h=A.b([q,B.eo,r,B.bt,B.kn,g,n,f,e,b.$2("Expires",h==null?"No expiry on file":A.oD(h)),B.kn,B.en],o)
-if(a&&!c)h.push(A.ds(A.nm(B.HY,B.XQ,new A.awx(a1,d,k.r,k.w,i),$.xC()),j,1/0))
+if(a&&!c)h.push(A.ds(A.nm(B.HY,B.XP,new A.awx(a1,d,k.r,k.w,i),$.xC()),j,1/0))
 if(c)h.push(B.PU)
 h.push(B.en)
 g=$.a0b()
@@ -90295,28 +90295,29 @@ a3=d9?0:B.c.aK(100*q/e0)
 a9=t.p
 a3=A.aVO(A.b([d,b,a2,A.Mu(B.pm,"With work samples",""+q+" of "+h+" workers",""+a3+"%"),A.Mu(B.Hu,"Avg profile completeness","six wallet sections",""+p+"%")],a9))
 h=e===1?"":"s"
-d=""+a0
-b=a0===1?"":"s"
-a2=""+a1
-b0=a1===1?"":"s"
-b0=A.a_Y("Needs attention",""+e+" credential"+h+" expiring in 30 days \xb7 "+d+" experience record"+b+" and "+a2+" work sample"+b0+" awaiting verification",B.dY)
-b=A.b([B.XL,B.fN],a9)
-if(n.length===0)b.push(B.Of)
-for(h=t.S,b1=A.fx(n,0,A.kM(6,"count",h),t.sn),b9=b1.$ti,b1=new A.by(b1,b1.gA(0),b9.h("by<av.E>")),b9=b9.h("av.E");b1.u();){c0=b1.d
-if(c0==null)c0=b9.a(c0)
-b.push(d5.a7H(c0.a,c0.b))}n=n.length
-if(n>6)b.push(new A.bi(B.oJ,A.aC("+ "+(n-6)+" more in the credentials table below",d6,d6,d6,B.cr,d6,d6),d6))
-n=A.bw(b,B.y,B.l,B.m)
-b=$.xC()
-b1=A.aC("Experience ("+d+" open)",d6,d6,d6,d6,d6,d6)
-b1=A.nm(B.HW,b1,m.length===0?d6:new A.apx(d5,m),b)
-b9=A.aC("Work samples ("+a2+" open)",d6,d6,d6,d6,d6,d6)
-n=A.bw(A.b([b0,A.a0_(d8,n,A.bw(A.b([B.XK,B.fN,B.Ym,B.eo,A.rw(A.b([b1,A.nm(B.I0,b9,l.length===0?d6:new A.apz(d5,l),b)],a9),8,8)],a9),B.y,B.l,B.m))],a9),B.y,B.l,B.m)
-b=A.a_Y("Personal credentials","Self-added by workers - separate from what Rosendin assigns. Badge = NCCER-sourced (proposed split).",A.b([A.nm(B.I1,B.Yh,d5.gah6(),b),A.nm(B.I_,B.XN,new A.apA(d5,e4),b)],a9))
-b0=t.Wy
-b1=A.aAj(A.b([new A.a2("total",""+e1.length),new A.a2(d7,""+a4),new A.a2("other issuers",""+a5),new A.a2("expiring in 90 days",""+a7)],b0))
+d=""+a7
+b=""+a0
+a2=a0===1?"":"s"
+b0=""+a1
+b1=a1===1?"":"s"
+b1=A.a_Y("Needs attention",""+e+" credential"+h+" expiring in 30 days \xb7 "+d+" in 90 days \xb7 "+b+" experience record"+a2+" and "+b0+" work sample"+b1+" awaiting verification",B.dY)
+a2=A.b([B.XS,B.fN],a9)
+if(n.length===0)a2.push(B.Of)
+for(h=t.S,b9=A.fx(n,0,A.kM(6,"count",h),t.sn),c0=b9.$ti,b9=new A.by(b9,b9.gA(0),c0.h("by<av.E>")),c0=c0.h("av.E");b9.u();){c1=b9.d
+if(c1==null)c1=c0.a(c1)
+a2.push(d5.a7H(c1.a,c1.b))}n=n.length
+if(n>6)a2.push(new A.bi(B.oJ,A.aC("+ "+(n-6)+" more in the credentials table below",d6,d6,d6,B.cr,d6,d6),d6))
+n=A.bw(a2,B.y,B.l,B.m)
+a2=$.xC()
+b9=A.aC("Experience ("+b+" open)",d6,d6,d6,d6,d6,d6)
+b9=A.nm(B.HW,b9,m.length===0?d6:new A.apx(d5,m),a2)
+c0=A.aC("Work samples ("+b0+" open)",d6,d6,d6,d6,d6,d6)
+n=A.bw(A.b([b1,A.a0_(d8,n,A.bw(A.b([B.XK,B.fN,B.Ym,B.eo,A.rw(A.b([b9,A.nm(B.I0,c0,l.length===0?d6:new A.apz(d5,l),a2)],a9),8,8)],a9),B.y,B.l,B.m))],a9),B.y,B.l,B.m)
+a2=A.a_Y("Personal credentials","Self-added by workers - separate from what Rosendin assigns. Badge = NCCER-sourced (proposed split).",A.b([A.nm(B.I1,B.Yh,d5.gah6(),a2),A.nm(B.I_,B.XM,new A.apA(d5,e4),a2)],a9))
+b1=t.Wy
+d=A.aAj(A.b([new A.a2("total",""+e1.length),new A.a2(d7,""+a4),new A.a2("other issuers",""+a5),new A.a2("expiring in 90 days",d)],b1))
 b9=A.a0_(d8,A.bw(A.b([A.oB("Badges vs other issuers",d6),new A.L4(A.b([new A.ea(d7,a4,B.ac),new A.ea("Other issuers",a5,B.cB)],t.Av),"credentials",d6)],a9),B.y,B.l,B.m),A.bw(A.b([A.oB("Top personal credential types","Illustrative sample names only - not real requirement data"),new A.n0(a6,B.ac,d6)],a9),B.y,B.l,B.m))
-c1=A.c_(A.b([A.d0(A.ai5(d6,B.I6,d6,new A.apB(d5)),1),B.AK,A.aC(""+o.length+" credentials",d6,d6,d6,B.bF,d6,d6)],a9),B.x,B.l,B.m,0,d6)
+c0=A.c_(A.b([A.d0(A.ai5(d6,B.I6,d6,new A.apB(d5)),1),B.AK,A.aC(""+o.length+" credentials",d6,d6,d6,B.bF,d6,d6)],a9),B.x,B.l,B.m,0,d6)
 c2=A.axs(B.cZ)
 c3=A.fh(10)
 c4=A.b([],t.yy)
@@ -90327,30 +90328,30 @@ d0=c9?B.lj:B.fb
 d1=c8.a
 d2=c7.a
 d3=c8.c
-c4.push(new A.ph(new A.apC(d5,e4,c7),A.b([new A.eQ(A.c_(A.b([A.hA(d0,c9?B.ac:B.cB,d6,15),B.RO,A.aC(d1,d6,d6,d6,B.bE,d6,d6)],a9),B.x,B.l,B.aY,0,d6)),new A.eQ(A.aC(d2.a,d6,d6,d6,B.mG,d6,d6)),new A.eQ(A.aC(A.IE(d1),d6,d6,d6,B.mG,d6,d6)),new A.eQ(A.aC(B.d5[A.fs(d3)-1]+" "+A.qB(d3)+", "+A.hJ(d3),d6,d6,d6,B.bF,d6,d6)),new A.eQ(new A.f0(A.a_R(c8),A.a_Z(A.jB(c8)).a,A.a_Z(A.jB(c8)).b,d6,d6)),new A.eQ(d5.Qi(d2,c8))],c6)))}o=A.bw(A.b([b,b1,B.bt,b9,B.RQ,c1,B.en,A.cI(d6,A.r8(A.r8(A.aC1(B.JR,48,42,40,c4,!1),d6,B.ae),d6,B.at),B.t,d6,d6,new A.ci(d6,d6,c2,c3,d6,d6,B.a2),d6,360,d6,d6,d6,d6,d6)],a9),B.y,B.l,B.m)
-b=A.a_Y("Work experience","Roles workers list on their own profile.",B.dY)
-b1=d9?0:B.c.aK(100*r/e0)
+c4.push(new A.ph(new A.apC(d5,e4,c7),A.b([new A.eQ(A.c_(A.b([A.hA(d0,c9?B.ac:B.cB,d6,15),B.RO,A.aC(d1,d6,d6,d6,B.bE,d6,d6)],a9),B.x,B.l,B.aY,0,d6)),new A.eQ(A.aC(d2.a,d6,d6,d6,B.mG,d6,d6)),new A.eQ(A.aC(A.IE(d1),d6,d6,d6,B.mG,d6,d6)),new A.eQ(A.aC(B.d5[A.fs(d3)-1]+" "+A.qB(d3)+", "+A.hJ(d3),d6,d6,d6,B.bF,d6,d6)),new A.eQ(new A.f0(A.a_R(c8),A.a_Z(A.jB(c8)).a,A.a_Z(A.jB(c8)).b,d6,d6)),new A.eQ(d5.Qi(d2,c8))],c6)))}o=A.bw(A.b([a2,d,B.bt,b9,B.RQ,c0,B.en,A.cI(d6,A.r8(A.r8(A.aC1(B.JR,48,42,40,c4,!1),d6,B.ae),d6,B.at),B.t,d6,d6,new A.ci(d6,d6,c2,c3,d6,d6,B.a2),d6,360,d6,d6,d6,d6,d6)],a9),B.y,B.l,B.m)
+d=A.a_Y("Work experience","Roles workers list on their own profile.",B.dY)
+a2=d9?0:B.c.aK(100*r/e0)
 b9=e2.length
-c1=d9?"0":B.c.a3(B.b.ku(d5.a.c,0,new A.apD())/e0,1)
+c0=d9?"0":B.c.a3(B.b.ku(d5.a.c,0,new A.apD())/e0,1)
 c2=e2.length
 c2=c2===0?0:B.c.aK(100*b2/c2)
-c2=A.aAj(A.b([new A.a2("workers with experience",""+b1+"%"),new A.a2("experience records",""+b9),new A.a2("avg years per worker",c1),new A.a2("verified by a reference",""+c2+"%")],b0))
-c1=A.a0_(d8,A.bw(A.b([A.oB("Experience depth","Workers by years in the trade"),new A.n0(b3,B.cB,d6)],a9),B.y,B.l,B.m),A.bw(A.b([A.oB("Where workers come from","Most common past employers they list"),new A.n0(b4,B.jT,d6)],a9),B.y,B.l,B.m))
+c2=A.aAj(A.b([new A.a2("workers with experience",""+a2+"%"),new A.a2("experience records",""+b9),new A.a2("avg years per worker",c0),new A.a2("verified by a reference",""+c2+"%")],b1))
+c0=A.a0_(d8,A.bw(A.b([A.oB("Experience depth","Workers by years in the trade"),new A.n0(b3,B.cB,d6)],a9),B.y,B.l,B.m),A.bw(A.b([A.oB("Where workers come from","Most common past employers they list"),new A.n0(b4,B.jT,d6)],a9),B.y,B.l,B.m))
 b9=m.length
-d=A.d0(A.aC(d+" of "+b9+" self-reported records still open for verification.",d6,d6,d6,B.bF,d6,d6),1)
-b1=$.xC()
-m=A.bw(A.b([b,c2,B.bt,c1,B.dj,A.c_(A.b([d,A.nm(B.lk,B.Bo,b9===0?d6:new A.apE(d5,m),b1)],a9),B.x,B.l,B.m,0,d6)],a9),B.y,B.l,B.m)
+b=A.d0(A.aC(b+" of "+b9+" self-reported records still open for verification.",d6,d6,d6,B.bF,d6,d6),1)
+a2=$.xC()
+m=A.bw(A.b([d,c2,B.bt,c0,B.dj,A.c_(A.b([b,A.nm(B.lk,B.Bo,b9===0?d6:new A.apE(d5,m),a2)],a9),B.x,B.l,B.m,0,d6)],a9),B.y,B.l,B.m)
 d=A.a_Y("Work samples","Photos and videos of real work - the strongest signal of actual skills, still rare.",B.dY)
 d9=d9?0:B.c.aK(100*q/e0)
 b=e3.length
 b9=b===0
-c1=b9?0:B.c.aK(100*b5/b)
+c0=b9?0:B.c.aK(100*b5/b)
 b9=b9?0:B.c.aK(100*b6/b)
-b0=A.aAj(A.b([new A.a2("workers with samples",""+d9+"%"),new A.a2("total samples",""+b),new A.a2("videos",""+c1+"%"),new A.a2("confirmed by someone",""+b9+"%")],b0))
+b1=A.aAj(A.b([new A.a2("workers with samples",""+d9+"%"),new A.a2("total samples",""+b),new A.a2("videos",""+c0+"%"),new A.a2("confirmed by someone",""+b9+"%")],b1))
 b9=A.a0_(d8,A.bw(A.b([A.oB("What the work shows","Samples by task tag"),new A.n0(b7,B.jT,d6)],a9),B.y,B.l,B.m),A.bw(A.b([A.oB("Uploads by month","Last 6 months"),new A.JB(b8,B.jT,d6)],a9),B.y,B.l,B.m))
-c1=l.length
-a2=A.d0(A.aC(a2+" of "+c1+" self-reported samples still open for verification.",d6,d6,d6,B.bF,d6,d6),1)
-d9=A.bw(A.b([d,b0,B.bt,b9,B.dj,A.c_(A.b([a2,A.nm(B.lk,B.Bo,c1===0?d6:new A.apF(d5,l),b1)],a9),B.x,B.l,B.m,0,d6)],a9),B.y,B.l,B.m)
+c0=l.length
+b0=A.d0(A.aC(b0+" of "+c0+" self-reported samples still open for verification.",d6,d6,d6,B.bF,d6,d6),1)
+d9=A.bw(A.b([d,b1,B.bt,b9,B.dj,A.c_(A.b([b0,A.nm(B.lk,B.Bo,c0===0?d6:new A.apF(d5,l),a2)],a9),B.x,B.l,B.m,0,d6)],a9),B.y,B.l,B.m)
 l=A.b([A.a_Y("Latest worker-added items","The actual newest entries across all areas - click through to the worker.",B.dY)],a9)
 for(i=A.fx(i,0,A.kM(8,"count",h),t.U_),h=i.$ti,i=new A.by(i,i.gA(0),h.h("by<av.E>")),h=h.h("av.E");i.u();){d4=i.d
 if(d4==null)d4=h.a(d4)
@@ -90724,7 +90725,7 @@ I(a){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=null,e=g.a.c,d=A.bx(a,f,t.w).w.a.a>=76
 B.b.dL(b,new A.auD())
 s=A.a0(e.e,t.Oe)
 B.b.dL(s,new A.auE())
-r=A.aBj(B.hj,B.k,B.XP)
+r=A.aBj(B.hj,B.k,B.XO)
 q=A.cI(f,B.m1,B.t,B.eM,f,f,f,f,f,B.kx,f,f,1/0)
 p=d?28:14
 o=e.a
@@ -90748,7 +90749,7 @@ if(s.length===0)n.push(B.Y4)
 for(m=s.length,h=0;h<s.length;s.length===m||(0,A.r)(s),++h)n.push(new A.cP(new A.auH(g,e,s[h],a),f))
 s=A.a0_(d,new A.fi(o,f,f),new A.fi(A.bw(n,B.y,B.l,B.m),f,f))
 c=A.b([A.oB("Work samples",""+c.length+" samples - same task tags the worker-side add flow uses")],i)
-if(b.length===0)c.push(B.XS)
+if(b.length===0)c.push(B.XR)
 o=A.b([],i)
 for(n=b.length,h=0;h<b.length;b.length===n||(0,A.r)(b),++h)o.push(new A.cP(new A.auI(g,e,b[h],a),f))
 c.push(A.rw(o,10,10))
@@ -96283,11 +96284,11 @@ B.P1=new A.uP(4,"unknown")
 B.P2=new A.Bm(null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.P3=new A.Br(null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.Bg=new A.k(!0,null,null,null,null,null,13.5,B.bf,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.XM=new A.bs("Ask the worker for proof",null,B.Bg,null,null,null,null,null,null)
+B.XL=new A.bs("Ask the worker for proof",null,B.Bg,null,null,null,null,null,null)
 B.cr=new A.k(!0,B.bZ,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.XY=new A.bs("The worker is asked to upload proof of the work - a contract, work order or signed completion note.",null,B.cr,null,null,null,null,null,null)
 B.a0L=new A.aqP(0,"material")
-B.P4=new A.qD(1,B.XM,B.XY,null,t.PE)
+B.P4=new A.qD(1,B.XL,B.XY,null,t.PE)
 B.Ya=new A.bs("Contact a reference",null,B.Bg,null,null,null,null,null,null)
 B.Yb=new A.bs("BuilderFAX asks a supervisor or employer contact to confirm this.",null,B.cr,null,null,null,null,null,null)
 B.P5=new A.qD(0,B.Ya,B.Yb,null,t.PE)
@@ -96364,10 +96365,10 @@ B.JH=s([B.HL,B.cn,B.H6],t.p)
 B.PU=new A.nI(B.ae,B.l,B.m,B.x,null,B.bG,null,0,B.JH,null)
 B.HO=new A.dl(B.pn,20,B.k,null,null)
 B.Xd=new A.k(!0,B.k,null,null,null,null,16,B.bp,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.XR=new A.bs("BuilderFAX",null,B.Xd,null,null,null,null,null,null)
+B.XQ=new A.bs("BuilderFAX",null,B.Xd,null,null,null,null,null,null)
 B.TB=new A.k(!0,B.hi,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.XZ=new A.bs("\xb7 Rosendin back office",null,B.TB,null,null,null,null,null,null)
-B.JN=s([B.HO,B.c6,B.XR,B.cn,B.XZ],t.p)
+B.JN=s([B.HO,B.c6,B.XQ,B.cn,B.XZ],t.p)
 B.PV=new A.nI(B.ae,B.l,B.m,B.x,null,B.bG,null,0,B.JN,null)
 B.PW=new A.OH(null,null)
 B.di=new A.qT(0,"idle")
@@ -97017,15 +97018,15 @@ B.XI=new A.bs("Demo only - no message or call actually goes out.",null,B.VU,null
 B.XJ=new A.bs("Issuers on worker-added credentials",null,B.fQ,null,null,null,null,null,null)
 B.Bl=new A.k(!0,B.bz,null,null,null,null,13,B.bg,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.XK=new A.bs("Unverified records",null,B.Bl,null,null,null,null,null,null)
-B.XL=new A.bs("Expiring credentials",null,B.Bl,null,null,null,null,null,null)
-B.XN=new A.bs("Download Excel report",null,null,null,null,null,null,null,null)
+B.XM=new A.bs("Download Excel report",null,null,null,null,null,null,null,null)
 B.mJ=new A.bs("Close",null,null,null,null,null,null,null,null)
 B.Th=new A.k(!0,B.bZ,null,null,null,null,13.5,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.XO=new A.bs("What Rosendin workers add themselves - personal credentials, work experience and work samples.",null,B.Th,null,null,null,null,null,null)
+B.XN=new A.bs("What Rosendin workers add themselves - personal credentials, work experience and work samples.",null,B.Th,null,null,null,null,null,null)
 B.Bh=new A.k(!0,null,null,null,null,null,16,B.bf,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.XP=new A.bs("Worker profile",null,B.Bh,null,null,null,null,null,null)
-B.XQ=new A.bs("Nudge worker to renew",null,null,null,null,null,null,null,null)
-B.XS=new A.bs("No samples yet.",null,B.cK,null,null,null,null,null,null)
+B.XO=new A.bs("Worker profile",null,B.Bh,null,null,null,null,null,null)
+B.XP=new A.bs("Nudge worker to renew",null,null,null,null,null,null,null,null)
+B.XR=new A.bs("No samples yet.",null,B.cK,null,null,null,null,null,null)
+B.XS=new A.bs("Expiring in 90 days",null,B.Bl,null,null,null,null,null,null)
 B.XT=new A.bs("None added yet.",null,B.cK,null,null,null,null,null,null)
 B.U7=new A.k(!0,null,null,null,null,null,13,B.bg,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.XW=new A.bs("How this gets captured",null,B.U7,null,null,null,null,null,null)
