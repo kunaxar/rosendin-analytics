@@ -259,8 +259,85 @@ class OverviewTab extends StatefulWidget {
   State<OverviewTab> createState() => _OverviewTabState();
 }
 
+class _Report {
+  final String title;
+  final List<(String, String)> rows;
+  final String summary;
+  const _Report(this.title, this.rows, this.summary);
+}
+
+String _fmtEntries(List<MapEntry<String, int>> es) => es.isEmpty ? '-' : es.map((e) => '${e.key} (${e.value})').join(', ');
+
 class _OverviewTabState extends State<OverviewTab> {
   String credQuery = '';
+  final _reportCtrl = TextEditingController();
+  _Report? _report;
+  bool _reportUnsupported = false;
+
+  @override
+  void dispose() {
+    _reportCtrl.dispose();
+    super.dispose();
+  }
+
+  void _generateReport() {
+    final q = _reportCtrl.text.trim();
+    if (q.isEmpty) return;
+    final t = q.toLowerCase();
+    final ws = workers;
+    final creds = credsOf(ws);
+    final recs = expOf(ws);
+    final samples = samplesOf(ws);
+    final n = ws.length;
+    _Report? rep;
+    if (t.contains('expir') || t.contains('renewal')) {
+      final exp = <(Worker, Cred)>[
+        for (final w in ws)
+          for (final c in w.creds)
+            if (credStatus(c) == CredStatus.expiring || credStatus(c) == CredStatus.expired) (w, c),
+      ];
+      final expd = exp.where((u) => credStatus(u.$2) == CredStatus.expired).length;
+      final topTrade = topEntries(countBy(exp.map((u) => u.$1.trade)), 1);
+      rep = _Report('Expiring credential risk', [
+        ('Credentials expiring within 90 days', '${exp.length - expd}'),
+        ('Already expired', '$expd'),
+        ('Most affected trades', _fmtEntries(topEntries(countBy(exp.map((u) => u.$1.trade)), 3))),
+        ('Most common expiring credentials', _fmtEntries(topEntries(countBy(exp.map((u) => u.$2.name)), 3))),
+      ], exp.isEmpty
+          ? 'AI summary (illustrative): no worker-added credentials expire within the next 90 days, so renewal risk is currently low.'
+          : 'AI summary (illustrative): ${exp.length} worker-added credentials need renewal attention. The risk concentrates in ${topTrade.first.key} - nudging those workers first covers the largest share of upcoming expiries.');
+    } else if (t.contains('sample') || t.contains('photo') || t.contains('video') || t.contains('adoption')) {
+      final withS = ws.where((w) => w.samples.isNotEmpty).length;
+      final videos = samples.where((sm) => sm.isVideo).length;
+      rep = _Report('Work sample adoption', [
+        ('Workers with samples', '$withS of $n (${n == 0 ? 0 : (100 * withS / n).round()}%)'),
+        ('Total samples', '${samples.length}'),
+        ('Videos', '${samples.isEmpty ? 0 : (100 * videos / samples.length).round()}%'),
+        ('Top task tags', _fmtEntries(topEntries(countBy(samples.map((sm) => sm.taskTag)), 3))),
+      ], 'AI summary (illustrative): only ${n == 0 ? 0 : (100 * withS / n).round()}% of workers show real work. Samples are the strongest skill signal, so the biggest lever is nudging the ${n - withS} workers without any.');
+    } else if (t.contains('experience') || t.contains('employer') || t.contains('years')) {
+      final withE = ws.where((w) => w.experience.isNotEmpty).length;
+      rep = _Report('Work experience depth', [
+        ('Workers with experience', '$withE of $n (${n == 0 ? 0 : (100 * withE / n).round()}%)'),
+        ('Experience records', '${recs.length}'),
+        ('Avg years per worker', n == 0 ? '0' : (ws.fold<double>(0, (a, w) => a + w.yearsExperience) / n).toStringAsFixed(1)),
+        ('Top past employers', _fmtEntries(topEntries(countBy(recs.map((e) => e.employer)), 3))),
+      ], 'AI summary (illustrative): depth looks solid on paper, but every record is self-reported - the per-record request verification flow is how Rosendin would confirm the ones that matter for a role.');
+    } else if (t.contains('credential') || t.contains('badge') || t.contains('nccer') || t.contains('coverage') || t.contains('issuer')) {
+      final withC = ws.where((w) => w.creds.isNotEmpty).length;
+      final badges = creds.where((c) => c.isBadge).length;
+      rep = _Report('Credential coverage', [
+        ('Workers with credentials', '$withC of $n (${n == 0 ? 0 : (100 * withC / n).round()}%)'),
+        ('Total worker-added credentials', '${creds.length}'),
+        ('NCCER badges vs other issuers', '$badges / ${creds.length - badges}'),
+        ('Top credential types', _fmtEntries(topEntries(countBy(creds.map((c) => c.name)), 3))),
+      ], 'AI summary (illustrative): ${n - withC} workers share no credential at all - closing that gap matters more than adding credentials for workers who already share.');
+    }
+    setState(() {
+      _report = rep;
+      _reportUnsupported = rep == null;
+    });
+  }
 
   List<Worker> get workers => widget.workers;
 
@@ -274,7 +351,6 @@ class _OverviewTabState extends State<OverviewTab> {
     final withCreds = workers.where((w) => w.creds.isNotEmpty).length;
     final withExp = workers.where((w) => w.experience.isNotEmpty).length;
     final withSamples = workers.where((w) => w.samples.isNotEmpty).length;
-    final avgComplete = n == 0 ? 0 : (workers.fold<int>(0, (a, w) => a + w.profileComplete) / n).round();
 
     // needs attention
     final expiring = <(Worker, Cred)>[
@@ -333,7 +409,6 @@ class _OverviewTabState extends State<OverviewTab> {
         KpiCard(label: 'With personal credentials', value: '${n == 0 ? 0 : (100 * withCreds / n).round()}%', icon: Icons.badge_outlined, sub: '$withCreds of $n workers'),
         KpiCard(label: 'With work experience', value: '${n == 0 ? 0 : (100 * withExp / n).round()}%', icon: Icons.work_history_outlined, sub: '$withExp of $n workers'),
         KpiCard(label: 'With work samples', value: '${n == 0 ? 0 : (100 * withSamples / n).round()}%', icon: Icons.photo_library_outlined, sub: '$withSamples of $n workers'),
-        KpiCard(label: 'Avg profile completeness', value: '$avgComplete%', icon: Icons.donut_large, sub: 'six wallet sections'),
       ]),
       const SizedBox(height: 14),
 
@@ -352,6 +427,71 @@ class _OverviewTabState extends State<OverviewTab> {
               child: Text('+ ${expiring.length - 6} more in the credentials table below', style: const TextStyle(fontSize: 12, color: g500)),
             ),
         ]),
+      ])),
+      const SizedBox(height: 14),
+
+      // ---- ask for a report (AI analysis concept) ----
+      CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        sectionHeader('Ask for a report', 'Ask for any cut of this worker-added data in plain language. Full concept: AI curates the analysis on live data (proposed, not built). This demo simulates a few example reports from fictional data.'),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _reportCtrl,
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.auto_awesome, size: 18), hintText: 'e.g. Which credentials are expiring, and for which trades?', hintStyle: TextStyle(fontSize: 13)),
+              onSubmitted: (_) => _generateReport(),
+            ),
+          ),
+          const SizedBox(width: 10),
+          FilledButton.icon(
+            icon: const Icon(Icons.auto_awesome, size: 16),
+            label: const Text('Generate report'),
+            onPressed: _generateReport,
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final ex in const ['Which credentials are expiring, and for which trades?', 'How complete is credential coverage across workers?', 'Which workers have the most experience?', 'How is work sample adoption looking?'])
+            ActionChip(label: Text(ex, style: const TextStyle(fontSize: 12)), onPressed: () {
+              _reportCtrl.text = ex;
+              _generateReport();
+            }),
+        ]),
+        if (_reportUnsupported) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: g100, borderRadius: BorderRadius.circular(10)),
+            child: const Text('This demo can simulate only the example reports above. The full concept lets an admin ask for any cut of the data and uses AI to curate it - that integration is proposed and not built yet.', style: TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
+          ),
+        ],
+        if (_report != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: blueBg, borderRadius: BorderRadius.circular(10)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(_report!.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                const Tag('Simulated demo output - not a live AI response', g600, g100, icon: Icons.science_outlined),
+              ]),
+              const SizedBox(height: 10),
+              for (final r in _report!.rows)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(children: [
+                    Expanded(child: Text(r.$1, style: const TextStyle(fontSize: 12.5, color: g600))),
+                    Text(r.$2, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              const SizedBox(height: 10),
+              Text(_report!.summary, style: const TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
+              const SizedBox(height: 6),
+              const Text('Demo: this report is generated locally in the browser from the fictional dataset; no demo report data is sent to any AI service.', style: TextStyle(fontSize: 11.5, color: g500)),
+            ]),
+          ),
+        ],
       ])),
       const SizedBox(height: 14),
 
