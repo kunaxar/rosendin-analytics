@@ -215,7 +215,7 @@ class _ReportPageState extends State<ReportPage> {
   int _shown = _pageSize;
 
   Widget _stat(String label, String value, bool wide) => Container(
-        width: wide ? 190 : (MediaQuery.of(context).size.width - 28 - 36 - 10) / 2,
+        width: wide ? 190 : (MediaQuery.of(context).size.width - 28 - 36 - 16) / 2,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: g50, border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
