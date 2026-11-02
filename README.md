@@ -1,6 +1,6 @@
 # Rosendin Analytics (prototype)
 
-A back-office analytics page concept for BuilderFAX employer accounts. It covers what workers add to their own
+A back-office analytics page concept for BuilderFax employer accounts. It covers what workers add to their own
 profiles - personal credentials, work experience and work samples - separate from existing
 assigned-credential analytics.
 
