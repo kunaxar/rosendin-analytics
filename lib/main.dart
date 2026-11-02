@@ -187,7 +187,7 @@ class _ShellState extends State<Shell> {
             padding: EdgeInsets.fromLTRB(22, 0, 12, 6),
             child: Text('Rosendin back office', style: TextStyle(color: Colors.white54, fontSize: 11.5)),
           ),
-          _navSection('Existing'),
+          _navSection('Existing - not in this prototype'),
           _navItem(Icons.dashboard_outlined, 'Dashboard', disabled: true),
           _navItem(Icons.assignment_ind_outlined, 'Assigned credentials', disabled: true),
           _navSection('Rosendin Analytics'),
