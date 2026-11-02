@@ -56,7 +56,7 @@ Widget demoBanner() => Container(
       width: double.infinity, color: amberBg, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
       child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.science_outlined, size: 14, color: amber), SizedBox(width: 6),
-        Flexible(child: Text('Prototype - all workers and numbers are fictional demo data. Nothing is sent or saved.', style: TextStyle(color: amber, fontSize: 12, fontWeight: FontWeight.w600))),
+        Flexible(child: Text('Prototype - fictional demo data. Nudges and verification requests are simulated; nothing is sent.', style: TextStyle(color: amber, fontSize: 12, fontWeight: FontWeight.w600))),
       ]),
     );
 
