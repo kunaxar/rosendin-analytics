@@ -27054,18 +27054,20 @@ f=A.b([],t.r1)
 for(e=j.length,q=0;q<j.length;j.length===e||(0,A.r)(j),++q){d=j[q]
 f.push(new A.S(d.a,d.b))}e=s.length
 if(e===0)o=A.b(["No worker-added credentials expire in the next 90 days, so renewal risk is low right now."],n)
-else{c=e===1?"":"s"
-b=i===1?"":"s"
-o=A.b([""+e+" credential"+c+" across "+g+" worker"+b+" need renewal attention.","Most affected trade: "+B.b.gP(j).a+" ("+B.b.gP(j).b+").",b8+A.a0b(new A.a_(s,new A.awQ(),o),3)+".","First to expire: "+B.b.gP(s).a.a+", "+B.b.gP(s).b.a+" ("+A.xx(B.b.gP(s).b).toLowerCase()+").","Suggested next step: nudge the listed workers, soonest expiry first."],n)}g=A.b(["Worker","Trade","Credential","Issuer","Expires","Status"],n)
+else{c=e===1
+b=c?"":"s"
+a=i===1?"":"s"
+c=c?"needs":"need"
+o=A.b([""+e+" credential"+b+" across "+g+" worker"+a+" "+c+" renewal attention.","Most affected trade: "+B.b.gP(j).a+" ("+B.b.gP(j).b+").",b8+A.a0b(new A.a_(s,new A.awQ(),o),3)+".","First to expire: "+B.b.gP(s).a.a+", "+B.b.gP(s).b.a+" ("+A.xx(B.b.gP(s).b).toLowerCase()+").","Suggested next step: nudge the listed workers, soonest expiry first."],n)}g=A.b(["Worker","Trade","Credential","Issuer","Expires","Status"],n)
 e=A.b([],t.rj)
-for(c=s.length,q=0;q<s.length;s.length===c||(0,A.r)(s),++q){a=s[q]
-b=a.a
-a0=a.b
-a1=a0.a
+for(c=s.length,q=0;q<s.length;s.length===c||(0,A.r)(s),++q){a0=s[q]
+b=a0.a
+a=a0.b
+a1=a.a
 a2=A.tc(a1)
-a3=a0.d
+a3=a.d
 a3.toString
-e.push(A.b([b.a,b.b,a1,a2,B.cN[A.fe(a3)-1]+" "+A.nA(a3)+", "+A.h2(a3),A.xx(a0)],n))}return new A.vf("Expiring credential risk",c2,h,r,f,"Matching credentials by trade",o,g,e,b7)}if(B.d.n(c0,"sample")||B.d.n(c0,"photo")||B.d.n(c0,"video")||B.d.n(c0,"adoption")){s=A.P(c3)
+e.push(A.b([b.a,b.b,a1,a2,B.cN[A.fe(a3)-1]+" "+A.nA(a3)+", "+A.h2(a3),A.xx(a)],n))}return new A.vf("Expiring credential risk",c2,h,r,f,"Matching credentials by trade",o,g,e,b7)}if(B.d.n(c0,"sample")||B.d.n(c0,"photo")||B.d.n(c0,"video")||B.d.n(c0,"adoption")){s=A.P(c3)
 r=s.h("ae<1>")
 a4=A.a2(new A.ae(c3,new A.awR(),r),r.h("l.E"))
 s=s.h("cO<1,ea>")
@@ -27090,13 +27092,13 @@ f=A.b(["Worker","Trade","Samples","Videos","Most common task"],h)
 r=A.b([],t.rj)
 for(e=o.length,q=0;q<o.length;o.length===e||(0,A.r)(o),++q){p=o[q]
 b=p.f
-a0=b.length
+a=b.length
 a1=A.P(b)
 a2=new A.ae(b,new A.awv(),a1.h("ae<1>")).gv(0)
 if(b.length===0)b="-"
 else{b=A.a0b(new A.a_(b,new A.aww(),a1.h("a_<1,m>")),1)
 a1=A.jm(" \\(\\d+\\)",!1)
-b=A.ia(b,a1,"")}r.push(A.b([p.a,p.b,""+a0,""+a2,b],h))}return new A.vf("Work sample adoption",c2,g,c,n,"Workers with at least one sample, by trade",s,f,r,"Workers and their samples")}if(B.d.n(c0,"experience")||B.d.n(c0,"employer")||B.d.n(c0,"years")){s=A.P(c3)
+b=A.ia(b,a1,"")}r.push(A.b([p.a,p.b,""+a,""+a2,b],h))}return new A.vf("Work sample adoption",c2,g,c,n,"Workers with at least one sample, by trade",s,f,r,"Workers and their samples")}if(B.d.n(c0,"experience")||B.d.n(c0,"employer")||B.d.n(c0,"years")){s=A.P(c3)
 r=s.h("ae<1>")
 a8=new A.ae(c3,new A.awx(),r).gv(0)
 s=s.h("cO<1,eF>")
@@ -27133,17 +27135,17 @@ e=A.b([],t.r1)
 for(c=b5.length,q=0;q<b5.length;b5.length===c||(0,A.r)(b5),++q){d=b5[q]
 e.push(new A.S(d.a,d.b))}c=A.IR(b2,c1)
 b=c1-b2
-a0=b===1?"":"s"
+a=b===1?"":"s"
 a1=b3.length
-s=A.b([o+" workers ("+c+") have shared at least one credential.",""+b+" worker"+a0+" share none.",g+" of "+a1+" credentials are NCCER badges; "+(a1-b4)+" come from other issuers.",b8+A.a0b(new A.a_(b3,new A.awN(),s),3)+"."],n)
+s=A.b([o+" workers ("+c+") have shared at least one credential.",""+b+" worker"+a+" share none.",g+" of "+a1+" credentials are NCCER badges; "+(a1-b4)+" come from other issuers.",b8+A.a0b(new A.a_(b3,new A.awN(),s),3)+"."],n)
 a1=A.b(["Worker","Trade","Credentials","NCCER badges","Credential types"],n)
 g=A.b([],t.rj)
 for(o=r.length,q=0;q<r.length;r.length===o||(0,A.r)(r),++q){p=r[q]
 c=p.d
 b=c.length
-a0=A.P(c)
-a2=new A.ae(c,new A.awO(),a0.h("ae<1>")).gv(0)
-c=c.length===0?"-":new A.a_(c,new A.awP(),a0.h("a_<1,m>")).fo(0).br(0,", ")
+a=A.P(c)
+a2=new A.ae(c,new A.awO(),a.h("ae<1>")).gv(0)
+c=c.length===0?"-":new A.a_(c,new A.awP(),a.h("a_<1,m>")).fo(0).br(0,", ")
 g.push(A.b([p.a,p.b,""+b,""+a2,c],n))}return new A.vf("Credential coverage",c2,h,f,e,"Credentials by issuer",s,a1,g,"Workers and their credentials")}return null},
 vf:function vf(a,b,c,d,e,f,g,h,i,j){var _=this
 _.a=a
