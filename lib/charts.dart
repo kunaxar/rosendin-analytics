@@ -3,58 +3,6 @@ import 'package:flutter/material.dart';
 import 'ui.dart';
 import 'data.dart';
 
-// ---------- vertical grouped bars ----------
-class GroupedBars extends StatelessWidget {
-  final List<String> labels;              // x labels
-  final List<List<int>> series;           // one list of values per series
-  final List<Color> colors;
-  final List<String> seriesNames;
-  final int height;
-  const GroupedBars({super.key, required this.labels, required this.series, required this.colors, required this.seriesNames, this.height = 220});
-
-  @override
-  Widget build(BuildContext context) {
-    final maxV = series.expand((s) => s).fold<int>(0, math.max);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Wrap(spacing: 16, children: [
-        for (var i = 0; i < seriesNames.length; i++)
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 10, height: 10, decoration: BoxDecoration(color: colors[i], borderRadius: BorderRadius.circular(2))),
-            const SizedBox(width: 6),
-            Text(seriesNames[i], style: const TextStyle(fontSize: 12, color: g600)),
-          ]),
-      ]),
-      const SizedBox(height: 12),
-      SizedBox(
-        height: height.toDouble(),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          for (var g = 0; g < labels.length; g++)
-            Expanded(
-              child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  for (var s = 0; s < series.length; s++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                        Text('${series[s][g]}', style: const TextStyle(fontSize: 10, color: g500)),
-                        Container(
-                          width: 16,
-                          height: maxV == 0 ? 0 : (series[s][g] / maxV) * (height - 48),
-                          decoration: BoxDecoration(color: colors[s], borderRadius: const BorderRadius.vertical(top: Radius.circular(3))),
-                        ),
-                      ]),
-                    ),
-                ]),
-                const SizedBox(height: 6),
-                Text(labels[g], style: const TextStyle(fontSize: 11, color: g500)),
-              ]),
-            ),
-        ]),
-      ),
-    ]);
-  }
-}
-
 // ---------- single series vertical bars ----------
 class Bars extends StatelessWidget {
   final List<MonthCount> data;
