@@ -1,0 +1,12 @@
+name: rosendin_analytics
+description: Rosendin Analytics prototype - analytics over worker-added profile data. Fictional demo data.
+publish_to: none
+version: 0.1.0
+environment:
+  sdk: ^3.5.0
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+flutter:
+  uses-material-design: true
