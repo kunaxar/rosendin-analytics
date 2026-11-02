@@ -94,7 +94,7 @@ Future<void> requestVerificationDialog(BuildContext context, {required String it
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     title: Text('Contact a reference', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                    subtitle: Text('BuilderFAX asks a supervisor or employer contact to confirm this.', style: TextStyle(fontSize: 12, color: g500)),
+                    subtitle: Text('BuilderFax asks a supervisor or employer contact to confirm this.', style: TextStyle(fontSize: 12, color: g500)),
                   ),
                   const RadioListTile<int>(
                     value: 1,
