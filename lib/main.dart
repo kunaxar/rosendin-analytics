@@ -16,20 +16,8 @@ class App extends StatelessWidget {
       );
 }
 
-enum RangeFilter { m6, m12, all }
-String rangeLabel(RangeFilter r) => switch (r) { RangeFilter.m6 => 'Last 6 months', RangeFilter.m12 => 'Last 12 months', RangeFilter.all => 'All time' };
-int rangeMonths(RangeFilter r) => switch (r) { RangeFilter.m6 => 6, RangeFilter.m12 => 12, RangeFilter.all => 16 };
-DateTime rangeStart(RangeFilter r) => switch (r) {
-      RangeFilter.m6 => daysAgo(183),
-      RangeFilter.m12 => daysAgo(365),
-      RangeFilter.all => DateTime(2020),
-    };
-
 const tabDefs = [
   (Icons.grid_view_rounded, 'Overview'),
-  (Icons.badge_outlined, 'Personal credentials'),
-  (Icons.work_history_outlined, 'Work experience'),
-  (Icons.photo_library_outlined, 'Work samples'),
   (Icons.people_outline, 'Workers'),
 ];
 
@@ -42,7 +30,6 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   int tab = 0;
   String trade = 'All trades';
-  RangeFilter range = RangeFilter.m6;
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +62,7 @@ class _ShellState extends State<Shell> {
   }
 
   Widget _tabBody(List<Worker> workers) => switch (tab) {
-        0 => OverviewTab(workers: workers, range: range),
-        1 => CredentialsTab(workers: workers, range: range),
-        2 => ExperienceTab(workers: workers, range: range),
-        3 => SamplesTab(workers: workers, range: range),
+        0 => OverviewTab(workers: workers),
         _ => const WorkersTab(),
       };
 
@@ -91,15 +75,6 @@ class _ShellState extends State<Shell> {
           decoration: const InputDecoration(prefixIcon: Icon(Icons.handyman_outlined, size: 18)),
           items: ['All trades', ...trades].map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
           onChanged: (v) => setState(() => trade = v!),
-        ),
-      ),
-      SizedBox(
-        width: 180,
-        child: DropdownButtonFormField<RangeFilter>(
-          initialValue: range,
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.date_range, size: 18)),
-          items: RangeFilter.values.map((r) => DropdownMenuItem(value: r, child: Text(rangeLabel(r), style: const TextStyle(fontSize: 13)))).toList(),
-          onChanged: (v) => setState(() => range = v!),
         ),
       ),
     ]);
