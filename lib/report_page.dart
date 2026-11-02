@@ -68,7 +68,7 @@ ReportData? buildDemoReport(String request, List<Worker> ws) {
       findings: items.isEmpty
           ? ['No worker-added credentials expire in the next 90 days, so renewal risk is low right now.']
           : [
-              '${items.length} credential${items.length == 1 ? '' : 's'} across $workersAffected worker${workersAffected == 1 ? '' : 's'} need renewal attention.',
+              '${items.length} credential${items.length == 1 ? '' : 's'} across $workersAffected worker${workersAffected == 1 ? '' : 's'} ${items.length == 1 ? 'needs' : 'need'} renewal attention.',
               'Most affected trade: ${byTrade.first.key} (${byTrade.first.value}).',
               'Most common credentials: ${_top(items.map((u) => u.$2.name))}.',
               'First to expire: ${items.first.$1.name}, ${items.first.$2.name} (${credStatusLabel(items.first.$2).toLowerCase()}).',
