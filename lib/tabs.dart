@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import 'ui.dart';
 import 'data.dart';
 import 'charts.dart';
-import 'main.dart' show RangeFilter, rangeMonths, rangeStart;
+import 'xlsx.dart';
 
 // ---------- shared ----------
 List<Cred> credsOf(List<Worker> ws) => ws.expand((w) => w.creds).toList();
 List<ExpRecord> expOf(List<Worker> ws) => ws.expand((w) => w.experience).toList();
 List<Sample> samplesOf(List<Worker> ws) => ws.expand((w) => w.samples).toList();
-int expiringWithin(List<Worker> ws, int days) {
-  final limit = demoNow.add(Duration(days: days));
-  return credsOf(ws).where((c) => c.expiry != null && c.expiry!.isAfter(demoNow) && c.expiry!.isBefore(limit)).length;
-}
 
 Widget kpiWrap(List<Widget> cards) => Wrap(spacing: 12, runSpacing: 12, children: cards.map((c) => SizedBox(width: 205, child: c)).toList());
 
@@ -19,41 +15,331 @@ Widget twoCol(bool wide, Widget a, Widget b) => wide
     ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: a), const SizedBox(width: 14), Expanded(child: b)])
     : Column(children: [a, const SizedBox(height: 14), b]);
 
-class Insight extends StatelessWidget {
-  final IconData icon; final Color color; final String text;
-  const Insight(this.icon, this.color, this.text, {super.key});
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, size: 17, color: color), const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13, height: 1.45))),
-        ]),
+Widget statChips(List<(String, String)> stats) => Wrap(spacing: 10, runSpacing: 10, children: [
+      for (final s in stats)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(color: g100, borderRadius: BorderRadius.circular(10)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(s.$2, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            const SizedBox(width: 6),
+            Flexible(child: Text(s.$1, style: const TextStyle(fontSize: 12, color: g600))),
+          ]),
+        ),
+    ]);
+
+Widget sectionHeader(String title, String sub, {List<Widget> actions = const []}) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            Padding(padding: const EdgeInsets.only(top: 2), child: Text(sub, style: const TextStyle(fontSize: 12.5, color: g500))),
+          ]),
+        ),
+        if (actions.isNotEmpty) ...[const SizedBox(width: 10), Wrap(spacing: 8, runSpacing: 8, children: actions)],
+      ]),
+    );
+
+final smallBtn = OutlinedButton.styleFrom(
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+  foregroundColor: slate,
+  side: const BorderSide(color: g300),
+  minimumSize: Size.zero,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+);
+
+final smallLink = TextButton.styleFrom(
+  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+  foregroundColor: slate,
+  minimumSize: Size.zero,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+);
+
+void demoSnack(BuildContext context, String msg) =>
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg, style: const TextStyle(fontSize: 13)), behavior: SnackBarBehavior.floating));
+
+(Color, Color) statusColors(CredStatus s) => switch (s) {
+      CredStatus.expired => (red, redBg),
+      CredStatus.expiring => (amber, amberBg),
+      CredStatus.valid => (green, greenBg),
+      CredStatus.noExpiry => (g600, g100),
+    };
+
+// ---------- request verification dialog ----------
+Future<void> requestVerificationDialog(BuildContext context, {required String itemLabel, required VoidCallback onRequested}) {
+  int mode = 0; // 0 = contact a reference, 1 = ask the worker for proof
+  final nameCtrl = TextEditingController();
+  final phoneCtrl = TextEditingController();
+  String? error;
+  return showDialog(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        title: const Text('Request verification', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(itemLabel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: g600)),
+              const SizedBox(height: 12),
+              RadioGroup<int>(
+                groupValue: mode,
+                onChanged: (v) => setLocal(() { mode = v!; error = null; }),
+                child: Column(children: [
+                  const RadioListTile<int>(
+                    value: 0,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Contact a reference', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    subtitle: Text('BuilderFAX asks a supervisor or employer contact to confirm this.', style: TextStyle(fontSize: 12, color: g500)),
+                  ),
+                  const RadioListTile<int>(
+                    value: 1,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Ask the worker for proof', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    subtitle: Text('The worker is asked to upload proof of the work - a contract, work order or signed completion note.', style: TextStyle(fontSize: 12, color: g500)),
+                  ),
+                ]),
+              ),
+              if (mode == 0) ...[
+                const SizedBox(height: 6),
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Contact name', labelStyle: TextStyle(fontSize: 13))),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Contact phone number', labelStyle: TextStyle(fontSize: 13), hintText: '+1 ...', hintStyle: TextStyle(fontSize: 13, color: g500)),
+                ),
+              ],
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline, size: 15, color: red),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(error!, style: const TextStyle(fontSize: 12.5, color: red))),
+                  ]),
+                ),
+              const SizedBox(height: 10),
+              const Text('Demo only - no message or call actually goes out.', style: TextStyle(fontSize: 11.5, color: g500, fontStyle: FontStyle.italic)),
+            ]),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: slate, textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            onPressed: () {
+              if (mode == 0 && phoneCtrl.text.trim().isEmpty) {
+                setLocal(() => error = 'Add a phone number for the reference, or switch to asking the worker for proof.');
+                return;
+              }
+              Navigator.of(ctx).pop();
+              onRequested();
+              demoSnack(context, 'Verification request recorded - demo only, nothing was sent.');
+            },
+            child: const Text('Send request'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// ---------- credential drawer (right side panel) ----------
+void openCredDrawer(BuildContext context, Worker w, Cred c, VoidCallback onChanged) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: 'Credential details',
+    barrierColor: Colors.black38,
+    transitionDuration: const Duration(milliseconds: 220),
+    transitionBuilder: (_, anim, __, child) => SlideTransition(
+      position: Tween(begin: const Offset(1, 0), end: Offset.zero).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+      child: child,
+    ),
+    pageBuilder: (dctx, _, __) {
+      final status = credStatus(c);
+      final (fg, bg) = statusColors(status);
+      final width = MediaQuery.of(dctx).size.width;
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Material(
+          color: Colors.white,
+          child: StatefulBuilder(
+            builder: (sctx, setLocal) {
+              final key = credKey(w, c);
+              final nudged = DemoActions.nudgedCreds.contains(key);
+              final canNudge = status == CredStatus.expiring || status == CredStatus.expired;
+              Widget row(String label, String value) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SizedBox(width: 92, child: Text(label, style: const TextStyle(fontSize: 12.5, color: g500))),
+                      Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                    ]),
+                  );
+              return Container(
+                width: width < 420 ? width : 400,
+                height: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(c.isBadge ? Icons.military_tech_outlined : Icons.badge_outlined, size: 20, color: c.isBadge ? slate : orange),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(c.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+                    IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.of(dctx).pop()),
+                  ]),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    Tag(c.isBadge ? 'NCCER badge' : 'Other issuer', c.isBadge ? slate : orange, c.isBadge ? blueBg : const Color(0xFFFFF0EA)),
+                    Tag(credStatusLabel(c), fg, bg),
+                    if (nudged) const Tag('Nudge sent', green, greenBg, icon: Icons.check_circle_outline),
+                  ]),
+                  const SizedBox(height: 14),
+                  const Divider(),
+                  row('Worker', w.name),
+                  row('Trade', w.trade),
+                  row('Issuer', issuerOf(c.name)),
+                  row('Added', fmtDate(c.added)),
+                  row('Expires', c.expiry == null ? 'No expiry on file' : fmtDate(c.expiry!)),
+                  const Divider(),
+                  const SizedBox(height: 10),
+                  if (canNudge && !nudged)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: smallBtn,
+                        icon: const Icon(Icons.notifications_outlined, size: 16),
+                        label: const Text('Nudge worker to renew'),
+                        onPressed: () {
+                          setLocal(() => DemoActions.nudgedCreds.add(key));
+                          onChanged();
+                          demoSnack(context, 'Renewal nudge queued for ${w.name} - demo only, nothing was sent.');
+                        },
+                      ),
+                    ),
+                  if (nudged)
+                    const Row(children: [
+                      Icon(Icons.check_circle_outline, size: 15, color: green),
+                      SizedBox(width: 6),
+                      Expanded(child: Text('Renewal nudge queued - the worker gets a reminder to renew. (Demo: nothing was sent.)', style: TextStyle(fontSize: 12.5, color: g600, height: 1.4))),
+                    ]),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      style: smallLink,
+                      icon: const Icon(Icons.open_in_new, size: 15),
+                      label: const Text('Open worker profile'),
+                      onPressed: () {
+                        Navigator.of(dctx).pop();
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerPage(worker: w)));
+                      },
+                    ),
+                  ),
+                ]),
+              );
+            },
+          ),
+        ),
       );
+    },
+  );
 }
 
 // ---------- 1. overview ----------
-class OverviewTab extends StatelessWidget {
-  final List<Worker> workers; final RangeFilter range;
-  const OverviewTab({super.key, required this.workers, required this.range});
+class OverviewTab extends StatefulWidget {
+  final List<Worker> workers;
+  const OverviewTab({super.key, required this.workers});
+  @override
+  State<OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends State<OverviewTab> {
+  String credQuery = '';
+
+  List<Worker> get workers => widget.workers;
 
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.of(context).size.width >= 760;
     final n = workers.length;
+    final creds = credsOf(workers);
+    final recs = expOf(workers);
+    final samples = samplesOf(workers);
     final withCreds = workers.where((w) => w.creds.isNotEmpty).length;
     final withExp = workers.where((w) => w.experience.isNotEmpty).length;
     final withSamples = workers.where((w) => w.samples.isNotEmpty).length;
     final avgComplete = n == 0 ? 0 : (workers.fold<int>(0, (a, w) => a + w.profileComplete) / n).round();
-    final start = rangeStart(range);
-    final months = rangeMonths(range);
-    final credAdds = perMonth(credsOf(workers).map((c) => c.added).where((d) => d.isAfter(start)), months);
-    final expAdds = perMonth(expOf(workers).map((e) => e.added).where((d) => d.isAfter(start)), months);
-    final sampleAdds = perMonth(samplesOf(workers).map((s) => s.uploaded).where((d) => d.isAfter(start)), months);
-    final fresh30 = workers.where((w) => w.lastUpdate.isAfter(daysAgo(30))).length;
-    final fresh90 = workers.where((w) => !w.lastUpdate.isAfter(daysAgo(30)) && w.lastUpdate.isAfter(daysAgo(90))).length;
-    final stale = n - fresh30 - fresh90;
-    final expiring = expiringWithin(workers, 30);
+
+    // needs attention
+    final expiring = <(Worker, Cred)>[
+      for (final w in workers)
+        for (final c in w.creds)
+          if (credStatus(c) == CredStatus.expiring || credStatus(c) == CredStatus.expired) (w, c),
+    ]..sort((a, b) => a.$2.expiry!.compareTo(b.$2.expiry!));
+    final exp30 = expiring.where((e) => credStatus(e.$2) == CredStatus.expiring && e.$2.expiry!.isBefore(demoNow.add(const Duration(days: 30)))).length;
+    final unverExp = <(Worker, ExpRecord)>[
+      for (final w in workers)
+        for (final e in w.experience)
+          if (e.verifiedBy == null) (w, e),
+    ];
+    final unverSamples = <(Worker, Sample)>[
+      for (final w in workers)
+        for (final s in w.samples)
+          if (s.confirmedBy == null) (w, s),
+    ];
+    final openExp = unverExp.where((u) => !DemoActions.verificationRequests.contains(expKey(u.$1, u.$2))).length;
+    final openSamples = unverSamples.where((u) => !DemoActions.verificationRequests.contains(sampleKey(u.$1, u.$2))).length;
+
+    // latest worker-added items feed
+    final feed = <(IconData, String, Worker, DateTime)>[
+      for (final w in workers)
+        for (final c in w.creds) (Icons.badge_outlined, 'Added credential: ${c.name}', w, c.added),
+      for (final w in workers)
+        for (final e in w.experience) (Icons.work_history_outlined, 'Added experience: ${e.role} · ${e.employer}', w, e.added),
+      for (final w in workers)
+        for (final s in w.samples) (s.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, 'Uploaded work sample: ${s.taskTag}', w, s.uploaded),
+    ]..sort((a, b) => b.$4.compareTo(a.$4));
+
+    // credentials section
+    final badges = creds.where((c) => c.isBadge).length;
+    final other = creds.length - badges;
+    final topTypes = topEntries(countBy(creds.map((c) => c.name)));
+    final exp90 = expiring.length;
+    final q = credQuery.trim().toLowerCase();
+    final credRows = <(Worker, Cred)>[
+      for (final w in workers)
+        for (final c in w.creds)
+          if (q.isEmpty ||
+              c.name.toLowerCase().contains(q) ||
+              w.name.toLowerCase().contains(q) ||
+              issuerOf(c.name).toLowerCase().contains(q))
+            (w, c),
+    ]..sort((a, b) {
+        int rank(CredStatus s) => switch (s) { CredStatus.expired => 0, CredStatus.expiring => 1, CredStatus.valid => 2, CredStatus.noExpiry => 3 };
+        final ra = rank(credStatus(a.$2)), rb = rank(credStatus(b.$2));
+        if (ra != rb) return ra.compareTo(rb);
+        final ea = a.$2.expiry, eb = b.$2.expiry;
+        if (ea != null && eb != null) return ea.compareTo(eb);
+        return b.$2.added.compareTo(a.$2.added);
+      });
+
+    // experience section
+    final verifiedRecs = recs.where((e) => e.verifiedBy != null).length;
+    final buckets = [('0-2 yrs', 0.0, 2.0), ('3-5 yrs', 3.0, 5.0), ('6-10 yrs', 6.0, 10.0), ('10+ yrs', 10.01, 100.0)];
+    final bucketCounts = buckets.map((b) => MapEntry(b.$1, workers.where((w) => w.yearsExperience >= b.$2 && w.yearsExperience <= b.$3).length)).toList();
+    final topEmployers = topEntries(countBy(recs.map((e) => e.employer)), 6);
+
+    // samples section
+    final videos = samples.where((s) => s.isVideo).length;
+    final confirmedSamples = samples.where((s) => s.confirmedBy != null).length;
+    final topTags = topEntries(countBy(samples.map((s) => s.taskTag)));
+    final uploads = perMonth(samples.map((s) => s.uploaded).where((d) => d.isAfter(daysAgo(183))), 6);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       kpiWrap([
@@ -64,217 +350,390 @@ class OverviewTab extends StatelessWidget {
         KpiCard(label: 'Avg profile completeness', value: '$avgComplete%', icon: Icons.donut_large, sub: 'six wallet sections'),
       ]),
       const SizedBox(height: 14),
+
+      // ---- needs attention ----
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        chartTitle('What workers are adding', sub: 'Self-added items per month - credentials, experience records, work samples'),
-        GroupedBars(
-          labels: credAdds.map((m) => m.label).toList(),
-          series: [credAdds.map((m) => m.value).toList(), expAdds.map((m) => m.value).toList(), sampleAdds.map((m) => m.value).toList()],
-          colors: const [slate, orange, Color(0xFF7A9BC0)],
-          seriesNames: const ['Credentials added', 'Experience updates', 'Samples uploaded'],
+        sectionHeader('Needs attention', '$exp30 credential${exp30 == 1 ? '' : 's'} expiring in 30 days · $openExp experience record${openExp == 1 ? '' : 's'} and $openSamples work sample${openSamples == 1 ? '' : 's'} awaiting verification'),
+        twoCol(wide,
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Expiring credentials', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
+            const SizedBox(height: 4),
+            if (expiring.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Nothing expiring in the next 90 days.', style: TextStyle(color: g500, fontSize: 13))),
+            for (final u in expiring.take(6)) _expiringRow(u.$1, u.$2),
+            if (expiring.length > 6)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text('+ ${expiring.length - 6} more in the credentials table below', style: const TextStyle(fontSize: 12, color: g500)),
+              ),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Unverified records', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: g600)),
+            const SizedBox(height: 4),
+            const Text('Self-reported by workers, not yet confirmed by a reference or proof document.',
+                style: TextStyle(fontSize: 12.5, color: g500, height: 1.4)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton.icon(
+                style: smallBtn,
+                icon: const Icon(Icons.work_history_outlined, size: 15),
+                label: Text('Experience ($openExp open)'),
+                onPressed: unverExp.isEmpty ? null : () => _reviewUnverifiedExperience(unverExp),
+              ),
+              OutlinedButton.icon(
+                style: smallBtn,
+                icon: const Icon(Icons.photo_library_outlined, size: 15),
+                label: Text('Work samples ($openSamples open)'),
+                onPressed: unverSamples.isEmpty ? null : () => _reviewUnverifiedSamples(unverSamples),
+              ),
+            ]),
+          ]),
         ),
       ])),
       const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Profile freshness', sub: 'When workers last updated anything. 30/90-day windows are proposed'),
-          Donut(slices: [('Last 30 days', fresh30, green), ('31-90 days', fresh90, amber), ('90+ days', stale, red)], centerLabel: 'workers'),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('What stands out', sub: 'Computed from the current filter. Windows and buckets are proposed defaults, not confirmed policy'),
-          Insight(Icons.badge_outlined, slate, '${credsOf(workers).length} personal credentials sit on worker profiles, added by workers themselves - separate from what Rosendin assigns.'),
-          Insight(Icons.schedule, amber, '$expiring personal credential${expiring == 1 ? '' : 's'} expire${expiring == 1 ? 's' : ''} in the next 30 days. Renewal reminders go to the worker; Rosendin sees the count.'),
-          Insight(Icons.photo_library_outlined, const Color(0xFF7A9BC0), 'Only ${n == 0 ? 0 : (100 * withSamples / n).round()}% of workers show actual work samples. Samples are the strongest signal of real skills and are still rare.'),
-          Insight(Icons.update, red, '$stale of $n workers have not updated their profile in 90+ days - their data may not reflect current skills.'),
-        ])),
-      ),
-    ]);
-  }
-}
 
-// ---------- 2. personal credentials ----------
-class CredentialsTab extends StatelessWidget {
-  final List<Worker> workers; final RangeFilter range;
-  const CredentialsTab({super.key, required this.workers, required this.range});
-
-  @override
-  Widget build(BuildContext context) {
-    final wide = MediaQuery.of(context).size.width >= 760;
-    final creds = credsOf(workers);
-    final badges = creds.where((c) => c.isBadge).length;
-    final other = creds.length - badges;
-    final exp30 = expiringWithin(workers, 30);
-    final exp90 = expiringWithin(workers, 90) - exp30;
-    final adds = perMonth(creds.map((c) => c.added).where((d) => d.isAfter(rangeStart(range))), rangeMonths(range));
-    final topTypes = topEntries(countBy(creds.map((c) => c.name)));
-    final upcoming = <(String, Cred)>[
-      for (final w in workers)
-        for (final c in w.creds)
-          if (c.expiry != null && c.expiry!.isAfter(demoNow)) (w.name, c),
-    ]..sort((a, b) => a.$2.expiry!.compareTo(b.$2.expiry!));
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      kpiWrap([
-        KpiCard(label: 'Personal credentials', value: '${creds.length}', icon: Icons.badge_outlined, sub: 'self-added by workers'),
-        KpiCard(label: 'NCCER badges', value: '$badges', icon: Icons.military_tech_outlined, sub: 'received from NCCER'),
-        KpiCard(label: 'Other issuers', value: '$other', icon: Icons.account_balance_outlined, sub: 'OSHA, state cards, more'),
-        KpiCard(label: 'Expiring in 30 days', value: '$exp30', icon: Icons.schedule, accent: exp30 > 0 ? red : slate, sub: exp30 > 0 ? 'needs attention' : 'nothing urgent'),
-      ]),
-      const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Badges vs other issuers', sub: 'Proposed split: NCCER-sourced vs any other issuer'),
-          Donut(slices: [('NCCER badges', badges, slate), ('Other issuers', other, orange)], centerLabel: 'credentials'),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Top personal credential types', sub: 'Illustrative sample names only - not real requirement data'),
-          HBars(entries: topTypes),
-        ])),
-      ),
-      const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Credentials added by month', sub: 'Fresh additions show active workers'),
-          Bars(data: adds),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Expiring soon', sub: '$exp30 in 30 days · $exp90 more in 31-90 days'),
-          if (upcoming.isEmpty) const Text('No dated expiries on file.', style: TextStyle(color: g500, fontSize: 13)),
-          for (final u in upcoming.take(6))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(u.$2.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    Text(u.$1, style: const TextStyle(fontSize: 12, color: g500)),
-                  ]),
-                ),
-                Tag(fmtDate(u.$2.expiry!), u.$2.expiry!.isBefore(demoNow.add(const Duration(days: 30))) ? red : amber, u.$2.expiry!.isBefore(demoNow.add(const Duration(days: 30))) ? redBg : amberBg),
-              ]),
-            ),
-        ])),
-      ),
-    ]);
-  }
-}
-
-// ---------- 3. work experience ----------
-class ExperienceTab extends StatelessWidget {
-  final List<Worker> workers; final RangeFilter range;
-  const ExperienceTab({super.key, required this.workers, required this.range});
-
-  @override
-  Widget build(BuildContext context) {
-    final wide = MediaQuery.of(context).size.width >= 760;
-    final n = workers.length;
-    final withExp = workers.where((w) => w.experience.isNotEmpty).length;
-    final avgYears = n == 0 ? 0.0 : workers.fold<double>(0, (a, w) => a + w.yearsExperience) / n;
-    final recs = expOf(workers);
-    final updated30 = workers.where((w) => w.experience.any((e) => e.added.isAfter(daysAgo(30)))).length;
-    final byTrade = <String, List<double>>{};
-    for (final w in workers) byTrade.putIfAbsent(w.trade, () => []).add(w.yearsExperience);
-    final tradeRows = byTrade.entries.map((e) => MapEntry(e.key, (e.value.reduce((a, b) => a + b) / e.value.length))).toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final buckets = [('0-2 yrs', 0.0, 2.0), ('3-5 yrs', 3.0, 5.0), ('6-10 yrs', 6.0, 10.0), ('10+ yrs', 10.01, 100.0)];
-    final bucketCounts = buckets.map((b) => MapEntry(b.$1, workers.where((w) => w.yearsExperience >= b.$2 && w.yearsExperience <= b.$3).length)).toList();
-    final adds = perMonth(recs.map((e) => e.added).where((d) => d.isAfter(rangeStart(range))), rangeMonths(range));
-    final topEmployers = topEntries(countBy(recs.map((e) => e.employer)), 6);
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      kpiWrap([
-        KpiCard(label: 'With work experience', value: '${n == 0 ? 0 : (100 * withExp / n).round()}%', icon: Icons.work_history_outlined, sub: '$withExp of $n workers'),
-        KpiCard(label: 'Avg years of experience', value: avgYears.toStringAsFixed(1), icon: Icons.timeline, sub: 'across listed roles'),
-        KpiCard(label: 'Experience records', value: '${recs.length}', icon: Icons.format_list_bulleted, sub: 'roles with employers listed'),
-        KpiCard(label: 'Updated in last 30 days', value: '$updated30', icon: Icons.update, sub: 'workers with fresh entries'),
-      ]),
-      const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Experience depth', sub: 'Workers by years in the trade'),
-          HBars(entries: bucketCounts, color: orange),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Avg years by trade', sub: 'Helps match workers to the right jobs'),
-          HBars(entries: tradeRows.map((e) => MapEntry(e.key, e.value.round())).toList()),
-        ])),
-      ),
-      const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Experience added by month', sub: 'Updates to the existing profile section over time'),
-          Bars(data: adds, color: orange),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Where workers come from', sub: 'Most common past employers they list'),
-          HBars(entries: topEmployers, color: const Color(0xFF7A9BC0)),
-        ])),
-      ),
-    ]);
-  }
-}
-
-// ---------- 4. work samples ----------
-class SamplesTab extends StatelessWidget {
-  final List<Worker> workers; final RangeFilter range;
-  const SamplesTab({super.key, required this.workers, required this.range});
-
-  @override
-  Widget build(BuildContext context) {
-    final wide = MediaQuery.of(context).size.width >= 760;
-    final n = workers.length;
-    final samples = samplesOf(workers);
-    final withSamples = workers.where((w) => w.samples.isNotEmpty).length;
-    final videos = samples.where((s) => s.isVideo).length;
-    final avg = withSamples == 0 ? 0.0 : samples.length / withSamples;
-    final adds = perMonth(samples.map((s) => s.uploaded).where((d) => d.isAfter(rangeStart(range))), rangeMonths(range));
-    final topTags = topEntries(countBy(samples.map((s) => s.taskTag)));
-    final recent = <(Worker, Sample)>[
-      for (final w in workers)
-        for (final s in w.samples) (w, s),
-    ]..sort((a, b) => b.$2.uploaded.compareTo(a.$2.uploaded));
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      kpiWrap([
-        KpiCard(label: 'Workers with samples', value: '${n == 0 ? 0 : (100 * withSamples / n).round()}%', icon: Icons.photo_library_outlined, sub: '$withSamples of $n workers'),
-        KpiCard(label: 'Total samples', value: '${samples.length}', icon: Icons.collections_outlined, sub: 'photos and videos of real work'),
-        KpiCard(label: 'Avg per active worker', value: avg.toStringAsFixed(1), icon: Icons.stacked_bar_chart, sub: 'among workers with samples'),
-        KpiCard(label: 'Videos', value: '${samples.isEmpty ? 0 : (100 * videos / samples.length).round()}%', icon: Icons.videocam_outlined, sub: '$videos of ${samples.length} uploads'),
-      ]),
-      const SizedBox(height: 14),
-      twoCol(wide,
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('What the work shows', sub: 'Samples by task tag'),
-          HBars(entries: topTags, color: const Color(0xFF7A9BC0)),
-        ])),
-        CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          chartTitle('Uploads by month', sub: 'Fresh samples mean workers are engaged'),
-          Bars(data: adds, color: const Color(0xFF7A9BC0)),
-        ])),
-      ),
-      const SizedBox(height: 14),
+      // ---- personal credentials ----
       CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        chartTitle('Latest samples', sub: 'Most recent uploads across workers'),
-        for (final r in recent.take(8))
+        sectionHeader(
+          'Personal credentials',
+          'Self-added by workers - separate from what Rosendin assigns. Badge = NCCER-sourced (proposed split).',
+          actions: [
+            OutlinedButton.icon(style: smallBtn, icon: const Icon(Icons.account_balance_outlined, size: 15), label: const Text('View issuers'), onPressed: _showIssuers),
+            OutlinedButton.icon(
+              style: smallBtn,
+              icon: const Icon(Icons.download_outlined, size: 15),
+              label: const Text('Download Excel report'),
+              onPressed: () {
+                downloadPersonalCredentialsReport(workers);
+                demoSnack(context, 'Report downloaded - fictional demo data.');
+              },
+            ),
+          ],
+        ),
+        statChips([
+          ('total', '${creds.length}'),
+          ('NCCER badges', '$badges'),
+          ('other issuers', '$other'),
+          ('expiring in 90 days', '$exp90'),
+        ]),
+        const SizedBox(height: 14),
+        twoCol(wide,
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('Badges vs other issuers'),
+            Donut(slices: [('NCCER badges', badges, slate), ('Other issuers', other, orange)], centerLabel: 'credentials'),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('Top personal credential types', sub: 'Illustrative sample names only - not real requirement data'),
+            HBars(entries: topTypes),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.search, size: 18), hintText: 'Search credential, worker or issuer', hintStyle: TextStyle(fontSize: 13)),
+              onChanged: (v) => setState(() => credQuery = v),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text('${credRows.length} credentials', style: const TextStyle(fontSize: 12.5, color: g500)),
+        ]),
+        const SizedBox(height: 10),
+        Container(
+          height: 360,
+          decoration: BoxDecoration(border: Border.all(color: g200), borderRadius: BorderRadius.circular(10)),
+          child: SingleChildScrollView(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                showCheckboxColumn: false,
+                headingRowHeight: 40,
+                dataRowMinHeight: 42,
+                dataRowMaxHeight: 48,
+                columns: const [
+                  DataColumn(label: Text('Credential', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600))),
+                  DataColumn(label: Text('Worker', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600))),
+                  DataColumn(label: Text('Issuer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600))),
+                  DataColumn(label: Text('Added', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600))),
+                  DataColumn(label: Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: g600))),
+                  DataColumn(label: SizedBox.shrink()),
+                ],
+                rows: [
+                  for (final r in credRows)
+                    DataRow(onSelectChanged: (_) => openCredDrawer(context, r.$1, r.$2, () => setState(() {})), cells: [
+                      DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(r.$2.isBadge ? Icons.military_tech_outlined : Icons.badge_outlined, size: 15, color: r.$2.isBadge ? slate : orange),
+                        const SizedBox(width: 7),
+                        Text(r.$2.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      ])),
+                      DataCell(Text(r.$1.name, style: const TextStyle(fontSize: 12.5))),
+                      DataCell(Text(issuerOf(r.$2.name), style: const TextStyle(fontSize: 12.5))),
+                      DataCell(Text(fmtDate(r.$2.added), style: const TextStyle(fontSize: 12.5, color: g500))),
+                      DataCell(Tag(credStatusLabel(r.$2), statusColors(credStatus(r.$2)).$1, statusColors(credStatus(r.$2)).$2)),
+                      DataCell(_nudgeCell(r.$1, r.$2)),
+                    ]),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ])),
+      const SizedBox(height: 14),
+
+      // ---- work experience ----
+      CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        sectionHeader('Work experience', 'Roles workers list on their own profile.'),
+        statChips([
+          ('workers with experience', '${n == 0 ? 0 : (100 * withExp / n).round()}%'),
+          ('experience records', '${recs.length}'),
+          ('avg years per worker', n == 0 ? '0' : (workers.fold<double>(0, (a, w) => a + w.yearsExperience) / n).toStringAsFixed(1)),
+          ('verified by a reference', '${recs.isEmpty ? 0 : (100 * verifiedRecs / recs.length).round()}%'),
+        ]),
+        const SizedBox(height: 14),
+        twoCol(wide,
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('Experience depth', sub: 'Workers by years in the trade'),
+            HBars(entries: bucketCounts, color: orange),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('Where workers come from', sub: 'Most common past employers they list'),
+            HBars(entries: topEmployers, color: const Color(0xFF7A9BC0)),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: Text('$openExp of ${unverExp.length} self-reported records still open for verification.', style: const TextStyle(fontSize: 12.5, color: g500))),
+          OutlinedButton.icon(
+            style: smallBtn,
+            icon: const Icon(Icons.verified_outlined, size: 15),
+            label: const Text('Review unverified'),
+            onPressed: unverExp.isEmpty ? null : () => _reviewUnverifiedExperience(unverExp),
+          ),
+        ]),
+      ])),
+      const SizedBox(height: 14),
+
+      // ---- work samples ----
+      CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        sectionHeader('Work samples', 'Photos and videos of real work - the strongest signal of actual skills, still rare.'),
+        statChips([
+          ('workers with samples', '${n == 0 ? 0 : (100 * withSamples / n).round()}%'),
+          ('total samples', '${samples.length}'),
+          ('videos', '${samples.isEmpty ? 0 : (100 * videos / samples.length).round()}%'),
+          ('confirmed by someone', '${samples.isEmpty ? 0 : (100 * confirmedSamples / samples.length).round()}%'),
+        ]),
+        const SizedBox(height: 14),
+        twoCol(wide,
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('What the work shows', sub: 'Samples by task tag'),
+            HBars(entries: topTags, color: const Color(0xFF7A9BC0)),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            chartTitle('Uploads by month', sub: 'Last 6 months'),
+            Bars(data: uploads, color: const Color(0xFF7A9BC0)),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: Text('$openSamples of ${unverSamples.length} self-reported samples still open for verification.', style: const TextStyle(fontSize: 12.5, color: g500))),
+          OutlinedButton.icon(
+            style: smallBtn,
+            icon: const Icon(Icons.verified_outlined, size: 15),
+            label: const Text('Review unverified'),
+            onPressed: unverSamples.isEmpty ? null : () => _reviewUnverifiedSamples(unverSamples),
+          ),
+        ]),
+      ])),
+      const SizedBox(height: 14),
+
+      // ---- latest worker-added items ----
+      CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        sectionHeader('Latest worker-added items', 'The actual newest entries across all areas - click through to the worker.'),
+        for (final f in feed.take(8))
           InkWell(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerPage(worker: r.$1))),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerPage(worker: f.$3))),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 7),
               child: Row(children: [
-                Icon(r.$2.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 18, color: slate),
+                Icon(f.$1, size: 17, color: slate),
                 const SizedBox(width: 10),
-                Expanded(child: Text(r.$2.taskTag, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-                Text(r.$1.name, style: const TextStyle(fontSize: 12.5, color: g500)),
+                Expanded(child: Text(f.$2, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                Text(f.$3.name, style: const TextStyle(fontSize: 12.5, color: g500)),
                 const SizedBox(width: 14),
-                SizedBox(width: 96, child: Text(fmtDate(r.$2.uploaded), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5, color: g500))),
+                SizedBox(width: 96, child: Text(fmtDate(f.$4), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5, color: g500))),
               ]),
             ),
           ),
       ])),
     ]);
   }
+
+  Widget _expiringRow(Worker w, Cred c) {
+    final status = credStatus(c);
+    final (fg, bg) = statusColors(status);
+    return InkWell(
+      onTap: () => openCredDrawer(context, w, c, () => setState(() {})),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(w.name, style: const TextStyle(fontSize: 12, color: g500)),
+            ]),
+          ),
+          Tag(credStatusLabel(c), fg, bg),
+          const SizedBox(width: 8),
+          _nudgeCell(w, c),
+        ]),
+      ),
+    );
+  }
+
+  Widget _nudgeCell(Worker w, Cred c) {
+    final status = credStatus(c);
+    if (status != CredStatus.expiring && status != CredStatus.expired) return const SizedBox.shrink();
+    final key = credKey(w, c);
+    final nudged = DemoActions.nudgedCreds.contains(key);
+    if (nudged) return const Tag('Nudge sent', green, greenBg, icon: Icons.check_circle_outline);
+    return OutlinedButton.icon(
+      style: smallBtn,
+      icon: const Icon(Icons.notifications_outlined, size: 14),
+      label: const Text('Nudge'),
+      onPressed: () {
+        setState(() => DemoActions.nudgedCreds.add(key));
+        demoSnack(context, 'Renewal nudge queued for ${w.name} - demo only, nothing was sent.');
+      },
+    );
+  }
+
+  void _showIssuers() {
+    final issuers = topEntries(countBy(credsOf(workers).map((c) => issuerOf(c.name))), 20);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Issuers on worker-added credentials', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        content: SizedBox(
+          width: 400,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Issuers seen across the current filter. Illustrative demo data.', style: TextStyle(fontSize: 12, color: g500)),
+            const SizedBox(height: 10),
+            HBars(entries: issuers),
+          ]),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+      ),
+    );
+  }
+
+  void _reviewUnverifiedExperience(List<(Worker, ExpRecord)> items) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Unverified experience records', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: 520,
+            height: 420,
+            child: items.isEmpty
+                ? const Text('Every experience record is verified.', style: TextStyle(fontSize: 13, color: g500))
+                : ListView(children: [
+                    for (final u in items)
+                      Builder(builder: (_) {
+                        final key = expKey(u.$1, u.$2);
+                        final requested = DemoActions.verificationRequests.contains(key);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(children: [
+                            Expanded(
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('${u.$2.role} · ${u.$2.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                Text('${u.$1.name} · ${u.$2.years.toStringAsFixed(1)} yrs · added ${fmtDate(u.$2.added)}', style: const TextStyle(fontSize: 12, color: g500)),
+                              ]),
+                            ),
+                            if (requested)
+                              const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
+                            else
+                              TextButton(
+                                style: smallLink,
+                                onPressed: () => requestVerificationDialog(
+                                  context,
+                                  itemLabel: '${u.$2.role} · ${u.$2.employer} (${u.$1.name})',
+                                  onRequested: () {
+                                    DemoActions.verificationRequests.add(key);
+                                    setLocal(() {});
+                                    setState(() {});
+                                  },
+                                ),
+                                child: const Text('Request verification'),
+                              ),
+                          ]),
+                        );
+                      }),
+                  ]),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        ),
+      ),
+    );
+  }
+
+  void _reviewUnverifiedSamples(List<(Worker, Sample)> items) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Unverified work samples', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: 520,
+            height: 420,
+            child: items.isEmpty
+                ? const Text('Every sample has a confirmation.', style: TextStyle(fontSize: 13, color: g500))
+                : ListView(children: [
+                    for (final u in items)
+                      Builder(builder: (_) {
+                        final key = sampleKey(u.$1, u.$2);
+                        final requested = DemoActions.verificationRequests.contains(key);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(children: [
+                            Icon(u.$2.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 16, color: slate),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(u.$2.taskTag, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                Text('${u.$1.name} · uploaded ${fmtDate(u.$2.uploaded)}', style: const TextStyle(fontSize: 12, color: g500)),
+                              ]),
+                            ),
+                            if (requested)
+                              const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
+                            else
+                              TextButton(
+                                style: smallLink,
+                                onPressed: () => requestVerificationDialog(
+                                  context,
+                                  itemLabel: '${u.$2.taskTag} sample (${u.$1.name})',
+                                  onRequested: () {
+                                    DemoActions.verificationRequests.add(key);
+                                    setLocal(() {});
+                                    setState(() {});
+                                  },
+                                ),
+                                child: const Text('Request verification'),
+                              ),
+                          ]),
+                        );
+                      }),
+                  ]),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close'))],
+        ),
+      ),
+    );
+  }
 }
 
-// ---------- 5. workers table ----------
+// ---------- 2. workers table ----------
 class WorkersTab extends StatefulWidget {
   const WorkersTab({super.key});
   @override
@@ -365,15 +824,18 @@ class _WorkersTabState extends State<WorkersTab> {
   }
 }
 
-
 // ---------- worker detail (connected journey: analytics -> worker -> their own profile data) ----------
-class WorkerPage extends StatelessWidget {
+class WorkerPage extends StatefulWidget {
   final Worker worker;
   const WorkerPage({super.key, required this.worker});
+  @override
+  State<WorkerPage> createState() => _WorkerPageState();
+}
 
+class _WorkerPageState extends State<WorkerPage> {
   @override
   Widget build(BuildContext context) {
-    final w = worker;
+    final w = widget.worker;
     final wide = MediaQuery.of(context).size.width >= 760;
     final samples = [...w.samples]..sort((a, b) => b.uploaded.compareTo(a.uploaded));
     final exp = [...w.experience]..sort((a, b) => b.added.compareTo(a.added));
@@ -410,35 +872,71 @@ class WorkerPage extends StatelessWidget {
                     chartTitle('Personal credentials', sub: '${w.creds.length} self-added · badge = NCCER-sourced (proposed split)'),
                     if (w.creds.isEmpty) const Text('None added yet.', style: TextStyle(color: g500, fontSize: 13)),
                     for (final c in w.creds)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        child: Row(children: [
-                          Icon(c.isBadge ? Icons.military_tech_outlined : Icons.badge_outlined, size: 17, color: c.isBadge ? slate : orange),
-                          const SizedBox(width: 8),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            Text('Added ${fmtDate(c.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
-                          ])),
-                          if (c.expiry != null)
-                            Tag(c.expiry!.isBefore(demoNow) ? 'Expired' : 'Exp ${fmtDate(c.expiry!)}', c.expiry!.isBefore(demoNow) ? red : c.expiry!.isBefore(demoNow.add(const Duration(days: 90))) ? amber : g600, c.expiry!.isBefore(demoNow) ? redBg : c.expiry!.isBefore(demoNow.add(const Duration(days: 90))) ? amberBg : g100),
-                        ]),
-                      ),
+                      Builder(builder: (_) {
+                        final status = credStatus(c);
+                        final (fg, bg) = statusColors(status);
+                        final key = credKey(w, c);
+                        final nudged = DemoActions.nudgedCreds.contains(key);
+                        final canNudge = status == CredStatus.expiring || status == CredStatus.expired;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(children: [
+                            Icon(c.isBadge ? Icons.military_tech_outlined : Icons.badge_outlined, size: 17, color: c.isBadge ? slate : orange),
+                            const SizedBox(width: 8),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text('${issuerOf(c.name)} · added ${fmtDate(c.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
+                            ])),
+                            Tag(credStatusLabel(c), fg, bg),
+                            if (canNudge && !nudged) ...[
+                              const SizedBox(width: 6),
+                              OutlinedButton(
+                                style: smallBtn,
+                                onPressed: () {
+                                  setState(() => DemoActions.nudgedCreds.add(key));
+                                  demoSnack(context, 'Renewal nudge queued for ${w.name} - demo only, nothing was sent.');
+                                },
+                                child: const Text('Nudge'),
+                              ),
+                            ],
+                            if (nudged) ...[const SizedBox(width: 6), const Tag('Nudge sent', green, greenBg)],
+                          ]),
+                        );
+                      }),
                   ])),
                   CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     chartTitle('Work experience', sub: 'From the existing profile section'),
                     if (exp.isEmpty) const Text('Not filled yet.', style: TextStyle(color: g500, fontSize: 13)),
                     for (final e in exp)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 5),
-                        child: Row(children: [
-                          const Icon(Icons.work_history_outlined, size: 17, color: slate),
-                          const SizedBox(width: 8),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('${e.role} · ${e.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            Text('${e.years.toStringAsFixed(1)} yrs · added ${fmtDate(e.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
-                          ])),
-                        ]),
-                      ),
+                      Builder(builder: (_) {
+                        final key = expKey(w, e);
+                        final requested = DemoActions.verificationRequests.contains(key);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(children: [
+                            const Icon(Icons.work_history_outlined, size: 17, color: slate),
+                            const SizedBox(width: 8),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('${e.role} · ${e.employer}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text('${e.years.toStringAsFixed(1)} yrs · added ${fmtDate(e.added)}', style: const TextStyle(fontSize: 11.5, color: g500)),
+                            ])),
+                            if (e.verifiedBy != null)
+                              Tooltip(message: 'Verified by ${e.verifiedBy}', child: const Tag('Verified', green, greenBg, icon: Icons.check_circle_outline))
+                            else if (requested)
+                              const Tag('Requested', slate, blueBg, icon: Icons.hourglass_top)
+                            else
+                              TextButton(
+                                style: smallLink,
+                                onPressed: () => requestVerificationDialog(
+                                  context,
+                                  itemLabel: '${e.role} · ${e.employer} (${w.name})',
+                                  onRequested: () => setState(() => DemoActions.verificationRequests.add(key)),
+                                ),
+                                child: const Text('Request verification'),
+                              ),
+                          ]),
+                        );
+                      }),
                   ])),
                 ),
                 const SizedBox(height: 14),
@@ -447,32 +945,36 @@ class WorkerPage extends StatelessWidget {
                   if (samples.isEmpty) const Text('No samples yet.', style: TextStyle(color: g500, fontSize: 13)),
                   Wrap(spacing: 10, runSpacing: 10, children: [
                     for (final sm in samples)
-                      InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SampleDetailPage(worker: w, sample: sm))),
-                        child: Container(
-                        width: 168,
-                        decoration: BoxDecoration(border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Container(
-                            height: 88,
-                            decoration: const BoxDecoration(color: blueBg, borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                            child: Center(child: Icon(sm.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 30, color: slate)),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
+                      Builder(builder: (_) {
+                        final requested = DemoActions.verificationRequests.contains(sampleKey(w, sm));
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SampleDetailPage(worker: w, sample: sm))).then((_) => setState(() {})),
+                          child: Container(
+                            width: 168,
+                            decoration: BoxDecoration(border: Border.all(color: g200), borderRadius: BorderRadius.circular(12)),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(sm.taskTag, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 3),
-                              Row(children: [
-                                if (sm.confirmedBy != null) ...[const Icon(Icons.check_circle, size: 12, color: green), const SizedBox(width: 3)],
-                                Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
-                              ]),
+                              Container(
+                                height: 88,
+                                decoration: const BoxDecoration(color: blueBg, borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                                child: Center(child: Icon(sm.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 30, color: slate)),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(sm.taskTag, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 3),
+                                  Row(children: [
+                                    if (sm.confirmedBy != null) ...[const Icon(Icons.check_circle, size: 12, color: green), const SizedBox(width: 3)],
+                                    if (requested) ...[const Icon(Icons.hourglass_top, size: 12, color: slate), const SizedBox(width: 3)],
+                                    Text(fmtDate(sm.uploaded), style: const TextStyle(fontSize: 11, color: g500)),
+                                  ]),
+                                ]),
+                              ),
                             ]),
                           ),
-                        ]),
-                        ),
-                      ),
+                        );
+                      }),
                   ]),
                 ])),
               ]),
@@ -485,14 +987,20 @@ class WorkerPage extends StatelessWidget {
 }
 
 // ---------- sample detail (same evidence object the worker-side work samples flow produces) ----------
-class SampleDetailPage extends StatelessWidget {
+class SampleDetailPage extends StatefulWidget {
   final Worker worker;
   final Sample sample;
   const SampleDetailPage({super.key, required this.worker, required this.sample});
+  @override
+  State<SampleDetailPage> createState() => _SampleDetailPageState();
+}
 
+class _SampleDetailPageState extends State<SampleDetailPage> {
   @override
   Widget build(BuildContext context) {
-    final confirmed = sample.confirmedBy != null;
+    final confirmed = widget.sample.confirmedBy != null;
+    final key = sampleKey(widget.worker, widget.sample);
+    final requested = DemoActions.verificationRequests.contains(key);
     return Scaffold(
       appBar: AppBar(backgroundColor: slateDark, foregroundColor: Colors.white, title: const Text('Work sample', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
       body: SafeArea(
@@ -508,25 +1016,27 @@ class SampleDetailPage extends StatelessWidget {
                     height: 300,
                     decoration: BoxDecoration(color: blueBg, borderRadius: BorderRadius.circular(16)),
                     child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(sample.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 56, color: slate),
+                      Icon(widget.sample.isVideo ? Icons.videocam_outlined : Icons.photo_outlined, size: 56, color: slate),
                       const SizedBox(height: 8),
-                      Text(sample.isVideo ? 'Video evidence' : 'Photo evidence', style: const TextStyle(fontSize: 13, color: g600, fontWeight: FontWeight.w600)),
+                      Text(widget.sample.isVideo ? 'Video evidence' : 'Photo evidence', style: const TextStyle(fontSize: 13, color: g600, fontWeight: FontWeight.w600)),
                       const Text('Media placeholder in this prototype', style: TextStyle(fontSize: 11.5, color: g500)),
                     ])),
                   ),
                   const SizedBox(height: 14),
                   CardBox(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      Expanded(child: Text(sample.taskTag, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+                      Expanded(child: Text(widget.sample.taskTag, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
                       confirmed
                           ? Tag('Confirmed', green, greenBg, icon: Icons.check_circle)
-                          : Tag('Self-reported', g600, g100, icon: Icons.person_outline),
+                          : requested
+                              ? const Tag('Verification requested', slate, blueBg, icon: Icons.hourglass_top)
+                              : const Tag('Self-reported', g600, g100, icon: Icons.person_outline),
                     ]),
                     const SizedBox(height: 8),
-                    Text('${worker.name} · ${worker.trade}', style: const TextStyle(fontSize: 13.5, color: g600, fontWeight: FontWeight.w600)),
+                    Text('${widget.worker.name} · ${widget.worker.trade}', style: const TextStyle(fontSize: 13.5, color: g600, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Uploaded ${fmtDate(sample.uploaded)}', style: const TextStyle(fontSize: 12.5, color: g500)),
-                    if (confirmed) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Confirmed by ${sample.confirmedBy}', style: const TextStyle(fontSize: 12.5, color: green))),
+                    Text('Uploaded ${fmtDate(widget.sample.uploaded)}', style: const TextStyle(fontSize: 12.5, color: g500)),
+                    if (confirmed) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Confirmed by ${widget.sample.confirmedBy}', style: const TextStyle(fontSize: 12.5, color: green))),
                     const SizedBox(height: 12),
                     const Divider(),
                     const SizedBox(height: 8),
@@ -534,6 +1044,24 @@ class SampleDetailPage extends StatelessWidget {
                     const SizedBox(height: 4),
                     const Text('Same evidence object as the worker-side work samples flow: the worker adds a photo or video first, task tags are suggested and confirmed, and a foreman, supervisor, coworker or instructor can confirm the sample. Confirmed means a named person said yes; self-reported is the worker\'s own entry.',
                         style: TextStyle(fontSize: 12.5, color: g600, height: 1.5)),
+                    if (!confirmed && !requested) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        style: smallBtn,
+                        icon: const Icon(Icons.verified_outlined, size: 15),
+                        label: const Text('Request verification'),
+                        onPressed: () => requestVerificationDialog(
+                          context,
+                          itemLabel: '${widget.sample.taskTag} sample (${widget.worker.name})',
+                          onRequested: () => setState(() => DemoActions.verificationRequests.add(key)),
+                        ),
+                      ),
+                    ],
+                    if (requested)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Text('Verification request sent - pending response. (Demo: nothing was actually sent.)', style: TextStyle(fontSize: 12.5, color: g500)),
+                      ),
                   ])),
                 ]),
               ),
