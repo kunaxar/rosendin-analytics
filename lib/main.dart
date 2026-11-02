@@ -85,7 +85,7 @@ class _ShellState extends State<Shell> {
   Widget _header(bool wide) {
     final filters = Wrap(spacing: 10, runSpacing: 10, children: [
       SizedBox(
-        width: 190,
+        width: 240,
         child: DropdownButtonFormField<String>(
           initialValue: trade,
           decoration: const InputDecoration(prefixIcon: Icon(Icons.handyman_outlined, size: 18)),
