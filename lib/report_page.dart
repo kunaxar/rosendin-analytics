@@ -135,26 +135,27 @@ ReportData? buildDemoReport(String request, List<Worker> ws) {
       title: 'Work experience depth',
       request: request,
       scope: [
-        'Data: worker-added work experience records, all $n workers',
+        'Data: each worker\'s profile-reported total years, plus worker-added experience records, all $n workers',
         'Filter: none - every worker listed',
-        'Sorted by: most years of experience first',
+        'Note: years are the total a worker reports on their profile. They are not calculated from the listed records.',
+        'Sorted by: profile-reported years, most first',
       ],
       stats: [
         ('Workers with records', '$withE of $n'),
         ('Experience records', '${recs.length}'),
-        ('Avg years per worker', avg.toStringAsFixed(1)),
+        ('Avg profile-reported years', avg.toStringAsFixed(1)),
         ('10+ years', '${buckets.last.$2}'),
       ],
-      breakdownTitle: 'Workers by years of experience',
+      breakdownTitle: 'Workers by profile-reported years',
       breakdown: buckets,
       findings: [
         '${_pctOf(withE, n)} of workers have added at least one experience record (${recs.length} records in total).',
-        'Average experience is ${avg.toStringAsFixed(1)} years; ${buckets.last.$2} workers have 10+ years.',
+        'Average profile-reported experience is ${avg.toStringAsFixed(1)} years; ${buckets.last.$2} workers have 10+ years.',
         'Most common past employers: ${_top(recs.map((e) => e.employer))}.',
-        'All records are self-reported. Verification can be requested per record from a worker profile.',
+        'Years are profile-reported, not summed from records, so a worker can show years with 0 records. All data is self-reported; verification can be requested per record from a worker profile.',
       ],
       tableTitle: 'Workers by experience',
-      columns: ['Worker', 'Trade', 'Years', 'Records', 'Most recent employer'],
+      columns: ['Worker', 'Trade', 'Years (profile-reported)', 'Records listed', 'Most recent listed employer'],
       rows: [
         for (final w in sorted)
           () {
